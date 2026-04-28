@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspberry Pi Camera Stream</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-container {
+            position: relative;
+            margin: 20px auto;
+        }
+        .stream-img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 14px;
+        }
+        code {
+            background-color: #f1f1f1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Raspberry Pi Camera Stream</h1>
+        
+        <div class="video-container">
+            <img class="stream-img" src="{{ url_for('video_feed') }}" alt="Live Camera Stream">
+        </div>
+        
+        <div class="controls">
+            <button onclick="takeSnapshot()">Take Snapshot</button>
+        </div>
+        
+        <div class="info">
+            <h3>Camera Controls:</h3>
+            <p>To adjust camera settings, modify the <code>stream_server.py</code> file:</p>
+            <ul>
+                <li>Change resolution: Modify <code>camera.resolution = (854, 480)</code></li>
+                <li>Change frame rate: Modify <code>camera.framerate = 20</code></li>
+                <li>Flip image horizontally: Add <code>camera.hflip = True</code></li>
+                <li>Flip image vertically: Add <code>camera.vflip = True</code></li>
+                <li>Rotate image: Add <code>camera.rotation = 180</code></li>
+            </ul>
+            <p>After changing settings, restart the server for changes to take effect.</p>
+        </div>
+    </div>
+    
+    <script>
+        function takeSnapshot() {
+            // Create a canvas element
+            const img = document.querySelector('.stream-img');
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            
+            // Draw the current frame to canvas
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // Convert to data URL and download
+            try {
+                const dataURL = canvas.toDataURL('image/png');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const filename = `raspberry_pi_snapshot_${timestamp}.png`;
+                
+                const a = document.createElement('a');
+                a.href = dataURL;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (e) {
+                console.error("Error taking snapshot:", e);
+                alert("Failed to take snapshot. This might be due to CORS restrictions or if the image is from a different domain.");
+            }
+        }
+    </script>
+</body>
+</html>
