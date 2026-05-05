@@ -67,6 +67,7 @@ def generate_frames():
     while True:
         if camera_available:
             frame = picam2.capture_array()
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         else:
             frame = np.zeros((stream_height, stream_width, 3), dtype=np.uint8)
             text = "No camera is detected"
