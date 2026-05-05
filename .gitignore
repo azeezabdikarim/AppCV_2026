@@ -1,3 +1,11 @@
 Lab_1b/instructor
 Lab_1a/lab_1a_solutions.ipynb
 Lab_1a/out
+Lab_2/data
+Lab_2/captured_points/corners.npz
+Lab_2/captured_points/intrinsics.yml
+__pycache__
+Lab_2/src/calibration_notebook_solutions.ipynb
+# Local calibration notebook
+Lab_2/src/calibrate.ipynb
+Lab_2/src/calibrate.ipynb

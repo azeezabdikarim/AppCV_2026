@@ -58,7 +58,7 @@ def detect_checkerboard(images):
 
         objpoints.append(objp.copy())
         imgpoints.append(refined)
-        valid_files.append(str(image_path))
+        valid_files.append(image_path.name)
 
     return {
         "valid_files": valid_files,
@@ -101,7 +101,7 @@ def detect_charuco(images):
 
         all_corners.append(charuco_corners)
         all_ids.append(charuco_ids)
-        valid_files.append(str(image_path))
+        valid_files.append(image_path.name)
 
     return {
         "valid_files": valid_files,
