@@ -23,6 +23,7 @@ from board_config import (
     CHECKERBOARD_SQUARES_X,
     CHECKERBOARD_SQUARES_Y,
     SQUARE_SIZE_M,
+    board_intrinsics_path,
     charuco_object_points_for_ids,
     create_charuco_board,
     get_aruco_dictionary,
@@ -235,8 +236,8 @@ def main():
     parser.add_argument("--img", required=True, help="Path to photograph")
     parser.add_argument(
         "--yaml",
-        default="captured_points/intrinsics.yml",
-        help="YAML file containing K and D",
+        default=None,
+        help="YAML file containing K and D. If omitted, the path is derived from --board.",
     )
     parser.add_argument(
         "--board",
@@ -279,7 +280,8 @@ def main():
     )
     args = parser.parse_args()
 
-    k, d = load_intrinsics(args.yaml)
+    yaml_path = args.yaml or str(board_intrinsics_path(args.board))
+    k, d = load_intrinsics(yaml_path)
 
     img = cv2.imread(args.img)
     if img is None:

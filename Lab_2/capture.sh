@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NUM_IMAGES=${1:-25}
+BOARD=${1:-}
+NUM_IMAGES=${2:-25}
+
+if [[ -z "${BOARD}" ]]; then
+  echo "Usage: bash capture.sh <checker|charuco> [num_images]" >&2
+  exit 1
+fi
+
+if [[ "${BOARD}" != "checker" && "${BOARD}" != "charuco" ]]; then
+  echo "Unsupported board '${BOARD}'. Use 'checker' or 'charuco'." >&2
+  exit 1
+fi
 
 if command -v rpicam-still >/dev/null 2>&1; then
   CAMERA_CMD="rpicam-still"
@@ -12,8 +23,9 @@ else
   exit 1
 fi
 
-mkdir -p data
-rm -f data/img_*.jpg
+OUT_DIR="data/${BOARD}"
+mkdir -p "${OUT_DIR}"
+rm -f "${OUT_DIR}"/img_*.jpg
 
 for i in $(seq -w 0 $((NUM_IMAGES - 1))); do
   echo "Capturing frame $i..."
@@ -21,9 +33,9 @@ for i in $(seq -w 0 $((NUM_IMAGES - 1))); do
     --width 640 \
     --height 480 \
     --timeout 100 \
-    -o "data/img_${i}.jpg"
+    -o "${OUT_DIR}/img_${i}.jpg"
   sleep 0.1
 done
 
-count=$(find data -maxdepth 1 -name 'img_*.jpg' | wc -l | tr -d ' ')
-echo "Captured $count images into data/"
+count=$(find "${OUT_DIR}" -maxdepth 1 -name 'img_*.jpg' | wc -l | tr -d ' ')
+echo "Captured $count images into ${OUT_DIR}/"

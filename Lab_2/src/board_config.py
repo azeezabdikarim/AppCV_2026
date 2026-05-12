@@ -24,6 +24,45 @@ CHARUCO_MARKER_SIZE_M = 0.022
 
 ARUCO_DICTIONARY_ID = cv2.aruco.DICT_4X4_50
 
+VALID_BOARDS = ("checker", "charuco")
+
+
+def normalize_board_name(board: str) -> str:
+    board_name = board.strip().lower()
+    if board_name not in VALID_BOARDS:
+        raise ValueError(
+            f"Unsupported board '{board}'. Expected one of: {', '.join(VALID_BOARDS)}."
+        )
+    return board_name
+
+
+def board_data_dir(board: str) -> Path:
+    return DATA_DIR / normalize_board_name(board)
+
+
+def board_captured_points_dir(board: str) -> Path:
+    return CAPTURED_POINTS_DIR / normalize_board_name(board)
+
+
+def board_corners_path(board: str) -> Path:
+    return board_captured_points_dir(board) / "corners.npz"
+
+
+def board_intrinsics_path(board: str) -> Path:
+    return board_captured_points_dir(board) / "intrinsics.yml"
+
+
+def board_measurement_image_path(board: str) -> Path:
+    return board_data_dir(board) / "object_on_board.jpg"
+
+
+def board_clip_path(board: str) -> Path:
+    return board_data_dir(board) / "board_clip.mp4"
+
+
+def board_calibration_images(board: str):
+    return board_data_dir(board).glob("img_*.jpg")
+
 
 def get_aruco_dictionary():
     aruco = cv2.aruco

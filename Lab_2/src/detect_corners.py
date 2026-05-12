@@ -7,21 +7,21 @@ Usage:
     python3 src/detect_corners.py --board charuco
 
 Output:
-    Saves corner detections to captured_points/corners.npz.
+    Saves corner detections to captured_points/<board>/corners.npz.
 """
 
 import argparse
-from pathlib import Path
 
 import cv2
 import numpy as np
 
 from board_config import (
-    CAPTURED_POINTS_DIR,
     CHARUCO_SQUARES_X,
     CHARUCO_SQUARES_Y,
     CHECKERBOARD_INNER_CORNERS,
-    DATA_DIR,
+    board_calibration_images,
+    board_corners_path,
+    board_captured_points_dir,
     checkerboard_object_points,
     create_charuco_board,
     get_aruco_dictionary,
@@ -116,18 +116,19 @@ def main():
     parser.add_argument("--board", choices=["checker", "charuco"], required=True)
     args = parser.parse_args()
 
-    images = sorted(DATA_DIR.glob("img_*.jpg"))
+    images = sorted(board_calibration_images(args.board))
     if not images:
-        raise SystemExit("No calibration images found in data/.")
+        raise SystemExit(f"No calibration images found in data/{args.board}/.")
 
-    CAPTURED_POINTS_DIR.mkdir(parents=True, exist_ok=True)
+    output_dir = board_captured_points_dir(args.board)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     if args.board == "checker":
         result = detect_checkerboard(images)
     else:
         result = detect_charuco(images)
 
-    out_path = CAPTURED_POINTS_DIR / "corners.npz"
+    out_path = board_corners_path(args.board)
     np.savez(out_path, **result)
 
     print(

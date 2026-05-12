@@ -4,8 +4,8 @@ This directory holds the optional Lab 2 extension on image-aligned augmentation.
 
 Expected inputs:
 
-- intrinsics at `../captured_points/intrinsics.yml`
-- a short video clip at `../data/board_clip.mp4`
+- intrinsics at `../captured_points/<board>/intrinsics.yml`
+- a short video clip at `../data/<board>/board_clip.mp4`
 
 Main notebook:
 
