@@ -106,3 +106,49 @@ def charuco_object_points_for_ids(board, charuco_ids):
     else:
         corners = board.chessboardCorners
     return corners[ids].astype(np.float32)
+
+
+def detect_aruco_markers(image, dictionary=None):
+    aruco = cv2.aruco
+    dictionary = get_aruco_dictionary() if dictionary is None else dictionary
+
+    if hasattr(aruco, "detectMarkers"):
+        return aruco.detectMarkers(image, dictionary)
+    if hasattr(aruco, "ArucoDetector"):
+        detector = aruco.ArucoDetector(dictionary)
+        return detector.detectMarkers(image)
+
+    raise AttributeError(
+        "This OpenCV build does not expose ArUco marker detection through either "
+        "detectMarkers or ArucoDetector."
+    )
+
+
+def detect_charuco_board(image, board=None, dictionary=None):
+    aruco = cv2.aruco
+    board = create_charuco_board() if board is None else board
+    dictionary = get_aruco_dictionary() if dictionary is None else dictionary
+
+    if hasattr(aruco, "interpolateCornersCharuco"):
+        marker_corners, marker_ids, _ = detect_aruco_markers(image, dictionary)
+        if marker_ids is None or len(marker_ids) == 0:
+            return marker_corners, marker_ids, None, None
+
+        _, charuco_corners, charuco_ids = aruco.interpolateCornersCharuco(
+            marker_corners,
+            marker_ids,
+            image,
+            board,
+        )
+        return marker_corners, marker_ids, charuco_corners, charuco_ids
+
+    if hasattr(aruco, "CharucoDetector"):
+        detector = aruco.CharucoDetector(board)
+        charuco_corners, charuco_ids, marker_corners, marker_ids = detector.detectBoard(
+            image
+        )
+        return marker_corners, marker_ids, charuco_corners, charuco_ids
+
+    raise AttributeError(
+        "This OpenCV build does not expose a supported ChArUco detection API."
+    )

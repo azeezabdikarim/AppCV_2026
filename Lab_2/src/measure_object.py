@@ -26,7 +26,7 @@ from board_config import (
     board_intrinsics_path,
     charuco_object_points_for_ids,
     create_charuco_board,
-    get_aruco_dictionary,
+    detect_charuco_board,
 )
 
 
@@ -143,23 +143,17 @@ def detect_checkerboard_auto(gray, cols, rows, square_size_m, debug=False):
 
 
 def detect_charuco_auto(gray, debug=False):
-    aruco = cv2.aruco
-    dictionary = get_aruco_dictionary()
     board = create_charuco_board()
     attempts = []
 
     for label, image in preprocess_variants(gray):
-        marker_corners, marker_ids, _ = aruco.detectMarkers(image, dictionary)
+        marker_corners, marker_ids, charuco_corners, charuco_ids = detect_charuco_board(
+            image, board=board
+        )
         marker_count = 0 if marker_ids is None else len(marker_ids)
         attempts.append(f"{label}:markers={marker_count}")
         if marker_ids is None or marker_count < 4:
             continue
-        _, charuco_corners, charuco_ids = aruco.interpolateCornersCharuco(
-            marker_corners,
-            marker_ids,
-            image,
-            board,
-        )
         charuco_count = 0 if charuco_corners is None else len(charuco_corners)
         attempts.append(f"{label}:charuco={charuco_count}")
         if charuco_corners is None or charuco_ids is None or charuco_count < 4:

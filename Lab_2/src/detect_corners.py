@@ -24,7 +24,7 @@ from board_config import (
     board_captured_points_dir,
     checkerboard_object_points,
     create_charuco_board,
-    get_aruco_dictionary,
+    detect_charuco_board,
 )
 
 
@@ -69,7 +69,6 @@ def detect_checkerboard(images):
 
 
 def detect_charuco(images):
-    dictionary = get_aruco_dictionary()
     board = create_charuco_board()
 
     all_corners, all_ids = [], []
@@ -82,16 +81,12 @@ def detect_charuco(images):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img_shape = gray.shape[::-1]
 
-        marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray, dictionary)
+        marker_corners, marker_ids, charuco_corners, charuco_ids = detect_charuco_board(
+            gray, board=board
+        )
         if marker_ids is None or len(marker_ids) == 0:
             continue
 
-        _, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(
-            marker_corners,
-            marker_ids,
-            gray,
-            board,
-        )
         if (
             charuco_corners is None
             or charuco_ids is None

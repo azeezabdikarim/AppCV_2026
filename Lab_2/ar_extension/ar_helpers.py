@@ -14,7 +14,7 @@ from board_config import (
     charuco_object_points_for_ids,
     checkerboard_object_points,
     create_charuco_board,
-    get_aruco_dictionary,
+    detect_charuco_board,
 )
 
 
@@ -26,20 +26,55 @@ def load_intrinsics(yaml_path):
     return k, d
 
 
+def _count_video_frames(video_path):
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Could not open video: {video_path}")
+
+    frame_count = 0
+    first_frame_shape = None
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            break
+        frame_count += 1
+        if first_frame_shape is None:
+            first_frame_shape = frame.shape
+
+    cap.release()
+    return frame_count, first_frame_shape
+
+
 def get_video_info(video_path):
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         raise FileNotFoundError(f"Could not open video: {video_path}")
 
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    reported_frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps = float(cap.get(cv2.CAP_PROP_FPS) or 0.0)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     cap.release()
 
+    frame_count = reported_frame_count
+    frame_count_source = "metadata"
+
+    if frame_count <= 0:
+        frame_count, first_frame_shape = _count_video_frames(video_path)
+        frame_count_source = "decoded"
+        if first_frame_shape is not None and (width <= 0 or height <= 0):
+            height, width = first_frame_shape[:2]
+
+    if frame_count <= 0:
+        raise ValueError(
+            f"Video appears to contain zero readable frames: {video_path}"
+        )
+
     duration_s = frame_count / fps if fps > 0 else 0.0
     return {
         "frame_count": frame_count,
+        "reported_frame_count": reported_frame_count,
+        "frame_count_source": frame_count_source,
         "fps": fps,
         "width": width,
         "height": height,
@@ -49,40 +84,84 @@ def get_video_info(video_path):
 
 def sample_frame_indices(frame_count, num_samples=9):
     if frame_count <= 0:
-        return []
+        raise ValueError(
+            "Cannot sample frames because the video frame count is zero."
+        )
     num_samples = min(num_samples, frame_count)
     return np.linspace(0, frame_count - 1, num_samples, dtype=int).tolist()
 
 
 def read_frame(video_path, frame_index):
+    if frame_index < 0:
+        raise ValueError(f"Frame index must be non-negative, not {frame_index}.")
+
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         raise FileNotFoundError(f"Could not open video: {video_path}")
-    cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_index))
-    ok, frame = cap.read()
-    cap.release()
-    if not ok:
-        raise RuntimeError(f"Could not read frame {frame_index} from {video_path}")
-    return frame
+
+    # Some OpenCV/video backend combinations ignore random frame seeks for mp4.
+    # These lab clips are short, so decode sequentially for predictable behavior.
+    current_index = 0
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            cap.release()
+            raise RuntimeError(
+                f"Could not read frame {frame_index} from {video_path}. "
+                f"The clip ended at frame {current_index}."
+            )
+        if current_index == frame_index:
+            cap.release()
+            return frame
+        current_index += 1
 
 
 def read_frames(video_path, frame_indices):
-    return [(idx, read_frame(video_path, idx)) for idx in frame_indices]
+    if not frame_indices:
+        raise ValueError("No frame indices were provided for reading.")
+    requested = [int(idx) for idx in frame_indices]
+    if min(requested) < 0:
+        raise ValueError("Frame indices must all be non-negative.")
+
+    requested_set = set(requested)
+    max_index = max(requested)
+
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Could not open video: {video_path}")
+
+    found = {}
+    current_index = 0
+    while current_index <= max_index:
+        ok, frame = cap.read()
+        if not ok:
+            break
+        if current_index in requested_set:
+            found[current_index] = frame.copy()
+            if len(found) == len(requested_set):
+                break
+        current_index += 1
+
+    cap.release()
+
+    missing = [idx for idx in requested if idx not in found]
+    if missing:
+        raise RuntimeError(
+            f"Could not read requested frames {missing} from {video_path}. "
+            f"The clip ended after frame {current_index - 1}."
+        )
+
+    return [(idx, found[idx]) for idx in requested]
 
 
 def detect_charuco(gray):
-    dictionary = get_aruco_dictionary()
     board = create_charuco_board()
-    marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray, dictionary)
+    marker_corners, marker_ids, charuco_corners, charuco_ids = detect_charuco_board(
+        gray, board=board
+    )
     if marker_ids is None or len(marker_ids) < 4:
         return None
 
-    _, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(
-        marker_corners,
-        marker_ids,
-        gray,
-        board,
-    )
     if charuco_corners is None or charuco_ids is None or len(charuco_corners) < 4:
         return None
 
