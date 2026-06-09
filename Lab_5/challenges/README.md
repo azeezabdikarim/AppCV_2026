@@ -164,6 +164,11 @@ The Raspberry Pi runs a video server that captures camera frames and streams the
    python3 raspberry_pi/video_server.py
    ```
 
+   This runs in the foreground and stays tied to your SSH session — if you close the terminal or your laptop disconnects, the stream dies. To keep it running in the background after you log out, launch it detached instead:
+   ```bash
+   nohup python3 raspberry_pi/video_server.py > stream.log 2>&1 &
+   ```
+
 3. Test the connection by opening `http://cvpiXX.local:5000` in your browser (replace XX with your RPi number). You should see a live video stream.
 
 **On your laptop:**
