@@ -23,7 +23,7 @@ In this lab, you'll explore human pose estimation using computer vision. You'll 
 
 2. Install required packages:
    ```bash
-   pip install "opencv-python>=4.5.0" "mediapipe>=0.8.0" "numpy>=1.19.0" "matplotlib>=3.5.0"
+   pip install "opencv-python>=4.5.0" "mediapipe<=0.10.30" "numpy>=1.19.0" "matplotlib>=3.5.0"
    ```
 
 ## Lab Structure
