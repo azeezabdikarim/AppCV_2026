@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PiCar-X First Drive</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #5d6d7e;
+      --line: #d8dee6;
+      --accent: #0b6bcb;
+      --accent-dark: #074f97;
+      --danger: #b3261e;
+      --ok: #146c43;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      background: #1f2933;
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 650;
+    }
+
+    .network {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+
+    .chip {
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 4px;
+      padding: 4px 7px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: minmax(320px, 2fr) minmax(300px, 1fr);
+      gap: 16px;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 14px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    .feed {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #111;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #111827;
+    }
+
+    .feed img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .drive-row,
+    .manual-grid,
+    .steer-row {
+      display: grid;
+      gap: 8px;
+    }
+
+    .drive-row {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .steer-row {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .manual-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 620;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: #9db7d4;
+      background: #f7fbff;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .primary:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+
+    .danger {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    .danger:hover {
+      background: #8f1f19;
+      border-color: #8f1f19;
+    }
+
+    .empty {
+      min-height: 44px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .status-item {
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 8px;
+      min-height: 54px;
+    }
+
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .value {
+      font-size: 16px;
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .ok {
+      color: var(--ok);
+    }
+
+    .bad {
+      color: var(--danger);
+    }
+
+    #message {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 850px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PiCar-X First Drive</h1>
+    <div class="network">
+      <span class="chip">Car: CV-PI-NET</span>
+      <span class="chip">Laptop: CV-CAR-VIEW-5G</span>
+      <span class="chip">One live viewer per car</span>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Live Debug Feed</h2>
+      <div class="feed">
+        <img src="/video_feed" alt="PiCar camera feed">
+      </div>
+    </section>
+
+    <section class="controls">
+      <h2>Gesture Steering Run</h2>
+      <div class="drive-row">
+        <button class="primary" onclick="sendCommand('/api/start_forward')">Start Forward</button>
+        <button class="danger" onclick="sendCommand('/api/stop')">Stop</button>
+      </div>
+
+      <div class="steer-row">
+        <button onclick="sendCommand('/api/steer/left')">Steer Left</button>
+        <button onclick="sendCommand('/api/steer/straight')">Straight</button>
+        <button onclick="sendCommand('/api/steer/right')">Steer Right</button>
+      </div>
+
+      <h2>Manual Checks</h2>
+      <div class="manual-grid">
+        <div class="empty"></div>
+        <button onclick="sendCommand('/api/move/forward')">Forward</button>
+        <div class="empty"></div>
+        <button onclick="sendCommand('/api/move/left')">Left</button>
+        <button class="danger" onclick="sendCommand('/api/move/stop')">Stop</button>
+        <button onclick="sendCommand('/api/move/right')">Right</button>
+        <div class="empty"></div>
+        <button onclick="sendCommand('/api/move/backward')">Backward</button>
+        <div class="empty"></div>
+      </div>
+
+      <div id="message"></div>
+
+      <h2>Status</h2>
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="label">Motion</span>
+          <span class="value" id="motion">-</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Steering</span>
+          <span class="value" id="steering">-</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Gesture</span>
+          <span class="value" id="gesture">-</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Hand</span>
+          <span class="value" id="hand">-</span>
+        </div>
+        <div class="status-item">
+          <span class="label">MediaPipe</span>
+          <span class="value" id="mediapipe">-</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Hardware</span>
+          <span class="value" id="hardware">-</span>
+        </div>
+        <div class="status-item">
+          <span class="label">FPS</span>
+          <span class="value" id="fps">-</span>
+        </div>
+        <div class="status-item">
+          <span class="label">Last Command</span>
+          <span class="value" id="lastCommand">-</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    async function sendCommand(url) {
+      const message = document.getElementById('message');
+      try {
+        const response = await fetch(url, { method: 'POST' });
+        const data = await response.json();
+        message.textContent = data.message || '';
+        updateFields(data.status || data);
+      } catch (error) {
+        message.textContent = error.message;
+      }
+    }
+
+    function updateFields(data) {
+      const moving = data.forward_active ? 'Moving' : 'Stopped';
+      document.getElementById('motion').textContent = moving;
+      document.getElementById('steering').textContent = `${data.current_direction} (${data.current_angle} deg)`;
+      document.getElementById('gesture').textContent = data.gesture_direction || 'unknown';
+      document.getElementById('hand').textContent = data.hand_detected ? 'Detected' : 'Not detected';
+      document.getElementById('mediapipe').textContent = data.mediapipe_available ? 'Ready' : 'Missing';
+      document.getElementById('hardware').textContent = data.hardware_connected ? 'Connected' : 'Simulation';
+      document.getElementById('fps').textContent = data.fps || '0';
+      document.getElementById('lastCommand').textContent = data.last_command || 'none';
+      document.getElementById('mediapipe').className = data.mediapipe_available ? 'value ok' : 'value bad';
+      document.getElementById('hardware').className = data.hardware_connected ? 'value ok' : 'value bad';
+    }
+
+    async function pollStatus() {
+      try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+        updateFields(data);
+        const message = document.getElementById('message');
+        if (data.gesture_error) {
+          message.textContent = data.gesture_error;
+        }
+      } catch (_error) {
+      }
+    }
+
+    pollStatus();
+    setInterval(pollStatus, 500);
+  </script>
+</body>
+</html>

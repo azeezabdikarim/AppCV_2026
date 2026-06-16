@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PiCar-X Control Interface</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+        
+        .main-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .control-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+
+        /* Debug Tabs */
+        .debug-tabs {
+            display: flex;
+            border-bottom: 3px solid #e9ecef;
+            margin-bottom: 20px;
+            gap: 5px;
+        }
+
+        .debug-tab {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: bold;
+            color: #6c757d;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .debug-tab:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .debug-tab.active {
+            background: white;
+            color: #2c3e50;
+            border-bottom-color: #007bff;
+        }
+
+        .debug-tab.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f8f9fa;
+            color: #adb5bd;
+        }
+
+        .debug-tab.disabled:hover {
+            background: #f8f9fa;
+            color: #adb5bd;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #videoFeed {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        /* Camera Controls */
+        .camera-controls {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .camera-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .camera-preset {
+            padding: 10px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .camera-preset:hover {
+            background: #1976d2;
+        }
+        
+        .camera-preset.success {
+            background: #4caf50;
+        }
+        
+        .camera-preset.error {
+            background: #f44336;
+        }
+        
+        .angle-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .angle-control label {
+            min-width: 80px;
+            font-weight: bold;
+        }
+        
+        .angle-slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+        }
+        
+        .angle-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #2196f3;
+        }
+        
+        /* Debug Sidebar */
+        .debug-sidebar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .debug-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .debug-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .debug-value {
+            color: #28a745;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        /* Week 2 specific debug styles */
+        .detection-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .detection-item {
+            background: #e8f4fd;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #007bff;
+            font-size: 0.9em;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .performance-item {
+            background: #fff3cd;
+            padding: 8px;
+            border-radius: 5px;
+            border-left: 3px solid #ffc107;
+            text-align: center;
+        }
+
+        .performance-label {
+            font-size: 0.8em;
+            color: #856404;
+        }
+
+        .performance-value {
+            font-weight: bold;
+            color: #856404;
+        }
+
+        /* Week 3 specific debug styles */
+        .speed-display {
+            background: #d1ecf1;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .speed-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #117a8b;
+        }
+        
+        /* Robot Controls */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .control-btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .forward { background: #3498db; color: white; }
+        .backward { background: #95a5a6; color: white; }
+        .left { background: #f39c12; color: white; }
+        .right { background: #f39c12; color: white; }
+        .stop { background: #e74c3c; color: white; }
+        
+        .autonomous-controls {
+            margin: 20px 0;
+        }
+        
+        .autonomous-btn {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .start-autonomous {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .stop-autonomous {
+            background: #e67e22;
+            color: white;
+        }
+        
+        .autonomous-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Control Groups */
+        .control-group {
+            margin: 15px 0;
+        }
+        
+        .control-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+        }
+        
+        .value-display {
+            min-width: 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .pid-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .pid-input {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .pid-input label {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .pid-input input {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .status-panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .status-label {
+            font-weight: bold;
+        }
+        
+        .status-value {
+            color: #007bff;
+        }
+        
+        .keyboard-hint {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .feature-status {
+            margin-top: 10px;
+        }
+
+        .feature-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #ddd;
+        }
+
+        .feature-item.active {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .feature-item.disabled {
+            border-left-color: #6c757d;
+            background: #f8f9fa;
+        }
+
+        .feature-item.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .feature-label {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .feature-value {
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .feature-value.active {
+            color: #28a745;
+        }
+
+        .feature-value.disabled {
+            color: #6c757d;
+        }
+
+        .feature-value.error {
+            color: #dc3545;
+        }
+
+        /* Hide/show debug content based on active tab */
+        .debug-content {
+            display: none;
+        }
+
+        .debug-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .camera-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .debug-tabs {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .debug-tab {
+                border-radius: 5px;
+                border-bottom: none;
+                border-left: 3px solid transparent;
+            }
+
+            .debug-tab.active {
+                border-left-color: #007bff;
+                border-bottom: none;
+            }
+        }
+
+        .console-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .console-header {
+            padding: 10px;
+            background: #333;
+            border-bottom: 1px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .console-header h3 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .console-output {
+            height: 200px;  /* CHANGE THIS TO: */
+            height: 120px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 2px;
+        }
+
+        .log-timestamp {
+            color: #888;
+        }
+
+        /* Speed Estimation Styles */
+        .speed-display {
+            text-align: center;
+            background: #000;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #333;
+        }
+
+        #speedValue {
+            font-size: 48px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            transition: color 0.3s ease;
+        }
+
+        #speedUnit {
+            font-size: 18px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        #speedStatus {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: color 0.3s ease;
+        }
+
+        .speed-test-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-speed {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-speed:hover {
+            background: #0056b3;
+        }
+
+        .btn-speed:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .btn-stop {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .btn-stop:hover {
+            background: #c82333;
+        }
+
+        .motor-status {
+            text-align: center;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            color: #856404;
+            font-weight: bold;
+        }
+
+        .speed-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        /* Speed color classes */
+        .speed-stopped { color: #808080; }
+        .speed-slow { color: #28a745; }
+        .speed-medium { color: #ffa500; }
+        .speed-fast { color: #dc3545; }
+
+        .log-level-INFO { color: #4CAF50; }
+        .log-level-WARN { color: #FF9800; }
+        .log-level-ERROR { color: #F44336; }
+        .log-level-STOP { color: #E91E63; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <h1>🚗 PiCar-X Control Interface</h1>
+
+            <!-- Debug Mode Tabs -->
+            <div class="debug-tabs">
+                <button class="debug-tab active" id="tab-line_following" onclick="switchDebugTab('line_following')">
+                    📍 Line Following
+                </button>
+                <button class="debug-tab" id="tab-object_detection" onclick="switchDebugTab('object_detection')">
+                    🎯 Object Detection
+                </button>
+                <button class="debug-tab" id="tab-speed_estimation" onclick="switchDebugTab('speed_estimation')">
+                    🚀 Speed Estimation
+                </button>
+            </div>
+            
+            <div class="video-container">
+                <img id="videoFeed" src="/video_feed" alt="Robot Camera Feed">
+            </div>
+            <div class="console-container">
+                <div class="console-header">
+                    <h3>Robot Console</h3>
+                    <button onclick="clearConsole()" class="btn btn-sm">Clear</button>
+                </div>
+                <div id="console-output" class="console-output"></div>
+            </div>
+            
+            <!-- Camera Positioning Controls -->
+            <div class="camera-controls">
+                <h3>📷 Camera Positioning</h3>
+                <div class="camera-grid">
+                    <button class="camera-preset" id="lookDownBtn" onclick="cameraLookDown()">
+                        📍 Look Down (Line Following)
+                    </button>
+                    <button class="camera-preset" id="lookForwardBtn" onclick="cameraLookForward()">
+                        👁️ Look Forward
+                    </button>
+                </div>
+                
+                <div class="angle-control">
+                    <label>Pan:</label>
+                    <input type="range" class="angle-slider" id="cameraPan" 
+                           min="-90" max="90" value="0" onchange="setCameraPan(this.value)">
+                    <span class="angle-value" id="panValue">0°</span>
+                </div>
+                
+                <div class="angle-control">
+                    <label>Tilt:</label>
+                    <input type="range" class="angle-slider" id="cameraTilt" 
+                           min="-90" max="90" value="-30" onchange="setCameraTilt(this.value)">
+                    <span class="angle-value" id="tiltValue">-30°</span>
+                </div>
+            </div>
+            
+            <div class="keyboard-hint">
+                💡 <strong>Setup:</strong> Position camera using controls above, then start autonomous mode
+            </div>
+            
+            <div class="controls-grid">
+                <div></div>
+                <button class="control-btn forward" onclick="moveRobot('forward')" data-key="w">
+                    ⬆️ Forward (W)
+                </button>
+                <div></div>
+                
+                <button class="control-btn left" onclick="moveRobot('left')" data-key="a">
+                    ⬅️ Left (A)
+                </button>
+                <button class="control-btn stop" onclick="moveRobot('stop')" data-key="f">
+                    🛑 STOP (F)
+                </button>
+                <button class="control-btn right" onclick="moveRobot('right')" data-key="d">
+                    ➡️ Right (D)
+                </button>
+                
+                <div></div>
+                <button class="control-btn backward" onclick="moveRobot('backward')" data-key="s">
+                    ⬇️ Backward (S)
+                </button>
+                <div></div>
+            </div>
+            
+            <!-- Autonomous Controls (Line Following & Object Detection) -->
+            <div class="autonomous-controls" id="autonomousControls">
+                <h3>🤖 Autonomous Mode</h3>
+                <button class="autonomous-btn start-autonomous" onclick="startAutonomous()">
+                    🚀 Start Line Following
+                </button>
+                <button class="autonomous-btn stop-autonomous" onclick="stopAutonomous()">
+                    ⏹️ Stop Autonomous Mode
+                </button>
+            </div>
+
+            <!-- Speed Estimation Controls (only visible in speed estimation mode) -->
+            <div class="speed-controls" id="speedControls" style="display: none;">
+                <h3>🚀 Speed Estimation Testing</h3>
+                
+                <!-- Large Speed Display -->
+                <div class="speed-display">
+                    <div class="speed-value" id="speedValue">0.00</div>
+                    <div class="speed-unit">m/s</div>
+                    <div class="speed-status" id="speedStatus">STOPPED</div>
+                </div>
+                
+                <!-- Speed Test Buttons -->
+                <div class="speed-test-buttons">
+                    <button class="btn-speed" id="speedTest30" onclick="startSpeedTest(30)">
+                        Slow (30%)
+                    </button>
+                    <button class="btn-speed" id="speedTest50" onclick="startSpeedTest(50)">
+                        Medium (50%)
+                    </button>
+                    <button class="btn-speed" id="speedTest70" onclick="startSpeedTest(70)">
+                        Fast (70%)
+                    </button>
+                    <button class="btn-stop" id="speedStop" onclick="stopSpeedTest()">
+                        Emergency Stop
+                    </button>
+                </div>
+                
+                <!-- Motor Status -->
+                <div class="motor-status" id="motorStatus" style="display: none;">
+                    <span id="motorPower">0</span>% Motor Power - Test Active (3 seconds)
+                </div>
+                
+                <!-- Speed Info -->
+                <div class="speed-info">
+                    <div>Raw: <span id="rawSpeed">0.000</span> m/s</div>
+                    <div>Smoothed: <span id="smoothedSpeed">0.000</span> m/s</div>
+                </div>
+                
+                <div class="keyboard-hint">
+                    💡 <strong>Testing:</strong> Use speed test buttons or WASD keys to validate speed estimation
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <!-- Dynamic Debug Information Sidebar -->
+            <div class="control-panel">
+                <h3 id="debugTitle">🔍 Line Following Debug</h3>
+                
+                <!-- Week 1: Line Following Debug -->
+                <div class="debug-content active" id="debug-line_following">
+                    <div class="debug-sidebar">
+                        <div class="debug-item">
+                            <span class="debug-label">Mode:</span>
+                            <span class="debug-value" id="debugMode">Manual</span>
+                        </div>
+                        <div class="debug-item">
+                            <span class="debug-label">Error:</span>
+                            <span class="debug-value" id="debugError">0.0 px</span>
+                        </div>
+                        <div class="debug-item">
+                            <span class="debug-label">Steering:</span>
+                            <span class="debug-value" id="debugSteering">0.0°</span>
+                        </div>
+                        <div class="debug-item">
+                            <span class="debug-label">Lines Found:</span>
+                            <span class="debug-value" id="debugLines">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Week 2: Object Detection Debug -->
+                <div class="debug-content" id="debug-object_detection">
+                    <div class="debug-sidebar">
+                        <div class="debug-item">
+                            <span class="debug-label">Stop Status:</span>
+                            <span class="debug-value" id="stopStatus">ACTIVE</span>
+                        </div>
+                        <div class="debug-item">
+                            <span class="debug-label">Detections:</span>
+                            <span class="debug-value" id="detectionsCount">0</span>
+                        </div>
+                        
+                        <div class="performance-grid">
+                            <div class="performance-item">
+                                <div class="performance-label">Detection</div>
+                                <div class="performance-value" id="detectionPerf">0 fps (0ms)</div>
+                            </div>
+                            <div class="performance-item">
+                                <div class="performance-label">Depth</div>
+                                <div class="performance-value" id="depthPerf">0 fps (0ms)</div>
+                            </div>
+                        </div>
+
+                        <div class="detection-list" id="detectionsList">
+                            <div style="text-align: center; color: #6c757d; font-style: italic;">
+                                No detections yet
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Week 3: Speed Estimation Debug -->
+                <div class="debug-content" id="debug-speed_estimation">
+                    <div class="debug-sidebar">
+                        <div class="speed-display">
+                            <div style="font-size: 0.9em; color: #117a8b; margin-bottom: 5px;">Current Speed</div>
+                            <div class="speed-value" id="currentSpeed">0.0 units/s</div>
+                        </div>
+                        
+                        <div class="debug-item">
+                            <span class="debug-label">Flow Magnitude:</span>
+                            <span class="debug-value" id="flowMagnitude">0.0</span>
+                        </div>
+                        <div class="debug-item">
+                            <span class="debug-label">Features Tracked:</span>
+                            <span class="debug-value" id="featuresTracked">0</span>
+                        </div>
+                        <div class="debug-item">
+                            <span class="debug-label">Calibration:</span>
+                            <span class="debug-value" id="calibrationStatus">Unknown</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Debug Controls - Tab Specific -->
+            <div class="control-panel">
+                <h3>🔧 Debug Controls</h3>
+                
+                <!-- Line Following Specific Controls -->
+                <div class="debug-content active" id="controls-line_following">
+                    <div class="control-group">
+                        <label for="debugLevel">Debug Level:</label>
+                        <div class="slider-container">
+                            <input type="range" id="debugLevel" class="slider" min="0" max="4" value="0" 
+                                   onchange="setDebugLevel(this.value)">
+                            <span class="value-display" id="debugLevelValue">0</span>
+                        </div>
+                        <small>0=Off, 1=Basic, 2=Edges, 3=Lines, 4=Full</small>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="frameRate">Processing Rate (fps):</label>
+                        <div class="slider-container">
+                            <input type="range" id="frameRate" class="slider" min="1" max="15" value="10" 
+                                   onchange="setFrameRate(this.value)">
+                            <span class="value-display" id="frameRateValue">10</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Object Detection Specific Controls -->
+                <div class="debug-content" id="controls-object_detection">
+                    <div style="text-align: center; color: #6c757d; padding: 20px;">
+                        Object detection performance is controlled<br>
+                        by tunable parameters in the code:<br>
+                        <code>detection_interval</code> and <code>depth_interval</code>
+                    </div>
+                </div>
+
+                <!-- Speed Estimation Specific Controls -->
+                <div class="debug-content" id="controls-speed_estimation">
+                    <div style="text-align: center; color: #6c757d; padding: 20px;">
+                        Speed estimation parameters are controlled<br>
+                        in the code and calibration files.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Robot Status -->
+            <div class="control-panel">
+                <h3>📊 Robot Status</h3>
+                <div class="status-panel">
+                    <div class="status-item">
+                        <span class="status-label">Last Command:</span>
+                        <span class="status-value" id="lastCommand">none</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Robot Connected:</span>
+                        <span class="status-value" id="robotConnected">Unknown</span>
+                    </div>
+                </div>
+                
+                <h4 style="color: #2c3e50; margin: 15px 0 10px 0;">🔧 Features Status</h4>
+                <div class="feature-status">
+                    <div class="feature-item" id="lineFollowingFeature">
+                        <span class="feature-label">Line Following:</span>
+                        <span class="feature-value" id="lineFollowingStatus">Loading...</span>
+                    </div>
+                    <div class="feature-item" id="signDetectionFeature">
+                        <span class="feature-label">Sign Detection:</span>
+                        <span class="feature-value" id="signDetectionStatus">Loading...</span>
+                    </div>
+                    <div class="feature-item" id="speedEstimationFeature">
+                        <span class="feature-label">Speed Estimation:</span>
+                        <span class="feature-value" id="speedEstimationStatus">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let isAutonomous = false;
+        let currentDebugMode = 'line_following';
+        let featureStates = {
+            'line_following': 'Disabled',
+            'sign_detection': 'Disabled',
+            'speed_estimation': 'Disabled'
+        };
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus();
+            setupKeyboardControls();
+            
+            // Initialize tab controls visibility
+            document.querySelectorAll('#controls-object_detection, #controls-speed_estimation').forEach(control => {
+                control.classList.remove('active');
+            });
+            
+            // Update status and debug data regularly
+            setInterval(updateStatus, 2000);
+            setInterval(updateDebugData, 500);
+        });
+
+        // =================================================================
+        // DEBUG TAB FUNCTIONS
+        // =================================================================
+        
+        function switchDebugTab(mode) {
+            // Update tab visual states
+            document.querySelectorAll('.debug-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(`tab-${mode}`).classList.add('active');
+            
+            // Update debug content visibility
+            document.querySelectorAll('.debug-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`debug-${mode}`).classList.add('active');
+            document.getElementById(`controls-${mode}`).classList.add('active');
+            
+            // Update debug title
+            const titles = {
+                'line_following': '🔍 Line Following Debug',
+                'object_detection': '🎯 Object Detection Debug', 
+                'speed_estimation': '🚀 Speed Estimation Debug'
+            };
+            document.getElementById('debugTitle').textContent = titles[mode];
+            
+            // Set debug mode on backend
+            fetch(`/set_debug_mode?mode=${mode}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        console.error('Failed to set debug mode:', data.message);
+                    }
+                });
+            
+            // Show/hide appropriate controls based on mode
+            const videoContainer = document.querySelector('.video-container');
+            const autonomousControls = document.getElementById('autonomousControls');
+            const speedControls = document.getElementById('speedControls');
+            
+            if (mode === 'speed_estimation') {
+                // Speed estimation mode: hide video, hide autonomous controls, show speed controls
+                videoContainer.style.display = 'none';
+                autonomousControls.style.display = 'none';
+                speedControls.style.display = 'block';
+                startSpeedPolling();
+            } else {
+                // Other modes: show video, show autonomous controls, hide speed controls
+                videoContainer.style.display = 'block';
+                autonomousControls.style.display = 'block';
+                speedControls.style.display = 'none';
+                stopSpeedPolling();
+            }
+        }
+
+        function isTabEnabled(mode) {
+            const modeToFeature = {
+                'line_following': 'line_following',
+                'object_detection': 'sign_detection',
+                'speed_estimation': 'speed_estimation'
+            };
+            
+            return featureStates[modeToFeature[mode]] === 'Active';
+        }
+
+        function updateTabAvailability() {
+            const modeToFeature = {
+                'line_following': 'line_following',
+                'object_detection': 'sign_detection',
+                'speed_estimation': 'speed_estimation'
+            };
+
+            Object.keys(modeToFeature).forEach(mode => {
+                const tab = document.getElementById(`tab-${mode}`);
+                const featureStatus = featureStates[modeToFeature[mode]];
+                
+                if (featureStatus === 'Active') {
+                    tab.classList.remove('disabled');
+                } else {
+                    tab.classList.add('disabled');
+                    
+                    // If current tab becomes disabled, switch to line following
+                    if (currentDebugMode === mode && mode !== 'line_following') {
+                        switchDebugTab('line_following');
+                    }
+                }
+            });
+        }
+        
+        // =================================================================
+        // CAMERA CONTROL FUNCTIONS (FIXED - Using Query Parameters)
+        // =================================================================
+        
+        function setCameraPan(angle) {
+            document.getElementById('panValue').textContent = angle + '°';
+            
+            fetch(`/set_camera_pan?angle=${angle}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Camera pan success:', data.message);
+                    } else {
+                        console.error('Camera pan failed:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Camera pan error:', error);
+                });
+        }
+        
+        function setCameraTilt(angle) {
+            document.getElementById('tiltValue').textContent = angle + '°';
+            
+            fetch(`/set_camera_tilt?angle=${angle}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Camera tilt success:', data.message);
+                    } else {
+                        console.error('Camera tilt failed:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Camera tilt error:', error);
+                });
+        }
+        
+        function cameraLookDown() {
+            const btn = document.getElementById('lookDownBtn');
+            btn.classList.add('success');
+            
+            fetch('/camera_look_down')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('cameraPan').value = 0;
+                        document.getElementById('cameraTilt').value = -30;
+                        document.getElementById('panValue').textContent = '0°';
+                        document.getElementById('tiltValue').textContent = '-30°';
+                        console.log('Camera look down success');
+                    } else {
+                        btn.classList.remove('success');
+                        btn.classList.add('error');
+                        console.error('Camera look down failed:', data.message);
+                    }
+                    setTimeout(() => {
+                        btn.classList.remove('success', 'error');
+                    }, 1000);
+                })
+                .catch(error => {
+                    btn.classList.remove('success');
+                    btn.classList.add('error');
+                    console.error('Camera look down error:', error);
+                    setTimeout(() => {
+                        btn.classList.remove('error');
+                    }, 1000);
+                });
+        }
+        
+        function cameraLookForward() {
+            const btn = document.getElementById('lookForwardBtn');
+            btn.classList.add('success');
+            
+            fetch('/camera_look_forward')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('cameraPan').value = 0;
+                        document.getElementById('cameraTilt').value = 0;
+                        document.getElementById('panValue').textContent = '0°';
+                        document.getElementById('tiltValue').textContent = '0°';
+                        console.log('Camera look forward success');
+                    } else {
+                        btn.classList.remove('success');
+                        btn.classList.add('error');
+                        console.error('Camera look forward failed:', data.message);
+                    }
+                    setTimeout(() => {
+                        btn.classList.remove('success', 'error');
+                    }, 1000);
+                })
+                .catch(error => {
+                    btn.classList.remove('success');
+                    btn.classList.add('error');
+                    console.error('Camera look forward error:', error);
+                    setTimeout(() => {
+                        btn.classList.remove('error');
+                    }, 1000);
+                });
+        }
+        
+        // =================================================================
+        // DEBUG DATA UPDATES
+        // =================================================================
+        
+        function updateDebugData() {
+            fetch('/debug_data')
+                .then(response => response.json())
+                .then(data => {
+                    // Update Line Following debug data (always available)
+                    document.getElementById('debugMode').textContent = data.mode;
+                    document.getElementById('debugError').textContent = (data.error_px || 0).toFixed(1) + ' px';
+                    document.getElementById('debugSteering').textContent = (data.steering_angle || 0).toFixed(1) + '°';
+                    document.getElementById('debugLines').textContent = data.lines_detected || 0;
+
+                    // Update Week 2 debug data if available
+                    if (data.stop_status) {
+                        document.getElementById('stopStatus').textContent = data.stop_status;
+                    }
+                    if (data.detections_count !== undefined) {
+                        document.getElementById('detectionsCount').textContent = data.detections_count;
+                    }
+                    if (data.detection_inference_ms !== undefined) {
+                        const detectionFps = currentDebugMode === 'object_detection' ? getDetectionFps() : 0;
+                        document.getElementById('detectionPerf').textContent = 
+                            `${detectionFps.toFixed(1)} fps (${data.detection_inference_ms.toFixed(0)}ms)`;
+                    }
+                    if (data.depth_inference_ms !== undefined) {
+                        const depthFps = currentDebugMode === 'object_detection' ? getDepthFps() : 0;
+                        document.getElementById('depthPerf').textContent = 
+                            `${depthFps.toFixed(1)} fps (${data.depth_inference_ms.toFixed(0)}ms)`;
+                    }
+
+                    // Update Week 3 debug data if available
+                    if (data.current_speed !== undefined) {
+                        document.getElementById('currentSpeed').textContent = data.current_speed.toFixed(1) + ' units/s';
+                    }
+                })
+                .catch(error => {
+                    console.log('Debug data update failed:', error);
+                });
+
+            // Get Week 2 specific performance data
+            if (currentDebugMode === 'object_detection') {
+                fetch('/get_week2_performance')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateDetectionsList(data.cached_detections || 0);
+                    })
+                    .catch(error => {
+                        console.log('Week 2 performance data failed:', error);
+                    });
+            }
+        }
+
+        function getDetectionFps() {
+            // This would come from the robot's detection interval setting
+            return 2.0; // Placeholder - would be calculated from actual intervals
+        }
+
+        function getDepthFps() {
+            // This would come from the robot's depth interval setting  
+            return 1.0; // Placeholder - would be calculated from actual intervals
+        }
+
+        function updateDetectionsList(count) {
+            const listElement = document.getElementById('detectionsList');
+            if (count === 0) {
+                listElement.innerHTML = '<div style="text-align: center; color: #6c757d; font-style: italic;">No detections yet</div>';
+            } else {
+                listElement.innerHTML = `<div class="detection-item">Found ${count} object(s)</div>`;
+            }
+        }
+        
+        // =================================================================
+        // MOVEMENT AND AUTONOMOUS FUNCTIONS
+        // =================================================================
+        
+        function moveRobot(direction) {
+            if (isAutonomous) {
+                console.log('Manual control disabled during autonomous mode');
+                return;
+            }
+            
+            fetch(`/move/${direction}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(`${direction}: ${data.message}`);
+                })
+                .catch(error => {
+                    console.log(`Movement error: ${error.message}`);
+                });
+        }
+        
+        function startAutonomous() {
+            fetch('/start_autonomous')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        isAutonomous = true;
+                        updateAutonomousButtons();
+                        console.log('Autonomous mode started');
+                    } else {
+                        console.log(`Failed to start autonomous: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.log(`Autonomous start error: ${error.message}`);
+                });
+        }
+        
+        function stopAutonomous() {
+            fetch('/stop_autonomous')
+                .then(response => response.json())
+                .then(data => {
+                    isAutonomous = false;
+                    updateAutonomousButtons();
+                    console.log('Autonomous mode stopped');
+                })
+                .catch(error => {
+                    console.log(`Autonomous stop error: ${error.message}`);
+                });
+        }
+        
+        function updateAutonomousButtons() {
+            const startBtn = document.querySelector('.start-autonomous');
+            const stopBtn = document.querySelector('.stop-autonomous');
+            
+            if (isAutonomous) {
+                startBtn.style.opacity = '0.5';
+                startBtn.style.cursor = 'not-allowed';
+                stopBtn.style.opacity = '1';
+                stopBtn.style.cursor = 'pointer';
+            } else {
+                startBtn.style.opacity = '1';
+                startBtn.style.cursor = 'pointer';
+                stopBtn.style.opacity = '0.5';
+                stopBtn.style.cursor = 'not-allowed';
+            }
+        }
+        
+        // =================================================================
+        // DEBUG CONTROLS (FIXED - Using Query Parameters)
+        // =================================================================
+        
+        function setDebugLevel(level) {
+            document.getElementById('debugLevelValue').textContent = level;
+            
+            fetch(`/set_debug_level?level=${level}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(`Debug level set to ${level}`);
+                })
+                .catch(error => {
+                    console.error('Debug level error:', error);
+                });
+        }
+        
+        function setFrameRate(fps) {
+            document.getElementById('frameRateValue').textContent = fps;
+            
+            fetch(`/set_frame_rate?fps=${fps}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(`Frame rate set to ${fps} fps`);
+                })
+                .catch(error => {
+                    console.error('Frame rate error:', error);
+                });
+        }
+        
+        // =================================================================
+        // STATUS UPDATES
+        // =================================================================
+        
+        function updateStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('lastCommand').textContent = data.last_command;
+                    document.getElementById('robotConnected').textContent = data.robot_connected ? 'Yes' : 'No';
+                    
+                    if (data.autonomous_mode !== isAutonomous) {
+                        isAutonomous = data.autonomous_mode;
+                        updateAutonomousButtons();
+                    }
+                })
+                .catch(error => {
+                    console.log('Status update failed:', error);
+                });
+            
+            fetch('/autonomous_status')
+                .then(response => response.json())
+                .then(data => {
+                    // Your existing code
+                    featureStates.line_following = data.features.line_following;
+                    featureStates.sign_detection = data.features.sign_detection;
+                    featureStates.speed_estimation = data.features.speed_estimation;
+
+                    updateFeatureStatus('lineFollowing', data.features.line_following);
+                    updateFeatureStatus('signDetection', data.features.sign_detection);
+                    updateFeatureStatus('speedEstimation', data.features.speed_estimation);
+                    
+                    // Update tab availability
+                    updateTabAvailability();
+                    
+                    // ADD THIS: Update the autonomous button text
+                    const autonomousButton = document.getElementById('start-autonomous-btn');
+                    if (autonomousButton && data.button_text) {
+                        autonomousButton.textContent = data.button_text;
+                    }
+                })
+                .catch(error => {
+                    console.log('Feature status update failed:', error);
+                });
+        }
+
+        function updateFeatureStatus(featureName, status) {
+            const featureElement = document.getElementById(featureName + 'Feature');
+            const statusElement = document.getElementById(featureName + 'Status');
+            
+            // Remove existing status classes
+            featureElement.classList.remove('active', 'disabled', 'error');
+            statusElement.classList.remove('active', 'disabled', 'error');
+            
+            // Update text and styling based on status
+            if (status === 'Active') {
+                statusElement.textContent = '✅ Active';
+                featureElement.classList.add('active');
+                statusElement.classList.add('active');
+            } else if (status === 'Disabled') {
+                statusElement.textContent = '⚪ Disabled';
+                featureElement.classList.add('disabled');
+                statusElement.classList.add('disabled');
+            } else if (status.startsWith('Error')) {
+                statusElement.textContent = '❌ Error';
+                featureElement.classList.add('error');
+                statusElement.classList.add('error');
+            } else {
+                statusElement.textContent = status;
+                featureElement.classList.add('disabled');
+                statusElement.classList.add('disabled');
+            }
+        }
+        
+        // =================================================================
+        // KEYBOARD CONTROLS
+        // =================================================================
+        
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', function(event) {
+                const key = event.key.toLowerCase();
+                
+                if (['w', 'a', 's', 'd', 'f'].includes(key)) {
+                    event.preventDefault();
+                }
+                
+                switch(key) {
+                    case 'w':
+                        moveRobot('forward');
+                        highlightButton('w');
+                        break;
+                    case 'a':
+                        moveRobot('left');
+                        highlightButton('a');
+                        break;
+                    case 's':
+                        moveRobot('backward');
+                        highlightButton('s');
+                        break;
+                    case 'd':
+                        moveRobot('right');
+                        highlightButton('d');
+                        break;
+                    case 'f':
+                        moveRobot('stop');
+                        highlightButton('f');
+                        break;
+                }
+            });
+        }
+        
+        function highlightButton(key) {
+            const button = document.querySelector(`[data-key="${key}"]`);
+            if (button) {
+                button.style.transform = 'scale(0.95)';
+                button.style.opacity = '0.8';
+                setTimeout(() => {
+                    button.style.transform = 'translateY(-2px)';
+                    button.style.opacity = '1';
+                }, 100);
+            }
+        }
+
+        function updateConsole() {
+            fetch('/console_logs')
+                .then(response => response.json())
+                .then(data => {
+                    const consoleOutput = document.getElementById('console-output');
+                    if (consoleOutput) {
+                        consoleOutput.innerHTML = data.messages.map(msg => 
+                            `<div class="log-entry">
+                                <span class="log-timestamp">[${msg.timestamp}]</span>
+                                <span class="log-level-${msg.level}">${msg.message}</span>
+                            </div>`
+                        ).join('');
+                        
+                        // Auto-scroll to bottom
+                        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                    }
+                })
+                .catch(error => console.log('Console update failed:', error));
+        }
+
+        function clearConsole() {
+            // For now, just refresh - you can add a DELETE route later
+            document.getElementById('console-output').innerHTML = '';
+        }
+
+        // Speed Estimation JavaScript
+        let speedPollingInterval = null;
+
+        function startSpeedTest(power) {
+            console.log(`Starting speed test at ${power}%`); // Debug logging
+            
+            // Disable all speed test buttons
+            const buttons = document.querySelectorAll('.btn-speed');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // Show motor status immediately
+            const motorStatus = document.getElementById('motorStatus');
+            const motorPower = document.getElementById('motorPower');
+            if (motorStatus && motorPower) {
+                motorPower.textContent = power;
+                motorStatus.style.display = 'block';
+            }
+            
+            // Always re-enable buttons after 3 seconds, regardless of backend response
+            const reEnableTimer = setTimeout(() => {
+                console.log('Re-enabling speed test buttons'); // Debug logging
+                buttons.forEach(btn => btn.disabled = false);
+                if (motorStatus) {
+                    motorStatus.style.display = 'none';
+                }
+            }, 3200); // Slightly longer than 3 seconds to be safe
+            
+            // Make the backend call
+            fetch(`/speed_test_control?action=start&speed=${power}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Speed test response:', data); // Debug logging
+                    
+                    if (data.success) {
+                        if (typeof showMessage === 'function') {
+                            showMessage(`Speed test started at ${power}% for 3 seconds`, 'success');
+                        } else {
+                            console.log(`Speed test started at ${power}% for 3 seconds`);
+                        }
+                    } else {
+                        console.error('Speed test failed:', data.message);
+                        if (typeof showMessage === 'function') {
+                            showMessage(data.message, 'error');
+                        }
+                        // Don't re-enable immediately on failure - let the timer handle it
+                    }
+                })
+                .catch(error => {
+                    console.error('Speed test error:', error);
+                    if (typeof showMessage === 'function') {
+                        showMessage('Speed test error: ' + error, 'error');
+                    }
+                    // Don't re-enable immediately on error - let the timer handle it
+                });
+        }
+
+        function stopSpeedTest() {
+            console.log('Emergency stop requested'); // Debug logging
+            
+            fetch('/speed_test_control?action=stop')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Stop response:', data); // Debug logging
+                    
+                    if (typeof showMessage === 'function') {
+                        showMessage(data.message, data.success ? 'success' : 'error');
+                    } else {
+                        console.log(data.message);
+                    }
+                    
+                    // Always hide motor status and re-enable buttons
+                    const motorStatus = document.getElementById('motorStatus');
+                    if (motorStatus) {
+                        motorStatus.style.display = 'none';
+                    }
+                    
+                    const buttons = document.querySelectorAll('.btn-speed');
+                    buttons.forEach(btn => btn.disabled = false);
+                })
+                .catch(error => {
+                    console.error('Stop error:', error);
+                    
+                    // Even on error, re-enable buttons and hide status
+                    const motorStatus = document.getElementById('motorStatus');
+                    if (motorStatus) {
+                        motorStatus.style.display = 'none';
+                    }
+                    
+                    const buttons = document.querySelectorAll('.btn-speed');
+                    buttons.forEach(btn => btn.disabled = false);
+                });
+        }
+
+        function startSpeedPolling() {
+            speedPollingInterval = setInterval(() => {
+                fetch('/process_speed_frames')  // New lightweight endpoint
+                    .then(response => response.json())
+                    .then(data => updateSpeedDisplay(data));
+            }, 200);
+        }
+
+        function updateSpeedDisplay(speedData) {
+            const speedValue = document.getElementById('speedValue');
+            const speedStatus = document.getElementById('speedStatus');
+            const rawSpeed = document.getElementById('rawSpeed');
+            const smoothedSpeed = document.getElementById('smoothedSpeed');
+            
+            if (speedValue && speedData) {
+                const speed = speedData.smoothed_speed || 0;
+                
+                // Update display values
+                speedValue.textContent = speed.toFixed(2);
+                rawSpeed.textContent = (speedData.current_speed || 0).toFixed(3);
+                smoothedSpeed.textContent = speed.toFixed(3);
+                
+                // Color coding and status
+                let colorClass, status;
+                if (speed > 0.4) {
+                    colorClass = 'speed-fast';
+                    status = 'FAST';
+                } else if (speed > 0.15) {
+                    colorClass = 'speed-medium';
+                    status = 'MEDIUM';
+                } else if (speed > 0.05) {
+                    colorClass = 'speed-slow';
+                    status = 'SLOW';
+                } else {
+                    colorClass = 'speed-stopped';
+                    status = 'STOPPED';
+                }
+                
+                speedValue.className = colorClass;
+                speedStatus.className = colorClass;
+                speedStatus.textContent = status;
+            }
+        }
+
+        function startSpeedPolling() {
+            if (speedPollingInterval) {
+                clearInterval(speedPollingInterval);
+            }
+            
+            speedPollingInterval = setInterval(() => {
+                fetch('/speed_data')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateSpeedDisplay(data);
+                    })
+                    .catch(error => {
+                        console.log('Speed polling error:', error);
+                    });
+            }, 200); // Poll every 200ms
+        }
+
+        function stopSpeedPolling() {
+            if (speedPollingInterval) {
+                clearInterval(speedPollingInterval);
+                speedPollingInterval = null;
+            }
+        }
+
+        // Update console every 500ms
+        setInterval(updateConsole, 500);
+    </script>
+</body>
+</html>
