@@ -5,6 +5,7 @@ This directory contains the 2026 PiCar-X lab code.
 ## Week layout
 
 - `week1_first_drive_gesture`: first-drive web UI and MediaPipe gesture steering.
+- `week1_first_drive_gesture_solution`: runnable Week 1 solution copy for instructor testing.
 - `week2_line_following`: shifted copy of the 2025 line-following lab.
 - `week3_object_detection`: shifted copy of the 2025 object-detection/sign-policy lab.
 - `week4_speed_estimation`: shifted copy of the 2025 optical-flow speed-estimation lab.
@@ -29,4 +30,11 @@ Students should edit only:
 
 ```text
 week1_first_drive_gesture/gesture_logic.py
+```
+
+## Run Week 1 solution
+
+```bash
+cd ~/AppCV_2026/Car_lab/week1_first_drive_gesture_solution
+python3 app.py
 ```

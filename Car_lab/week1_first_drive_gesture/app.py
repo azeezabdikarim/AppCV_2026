@@ -16,7 +16,7 @@ from vision_worker import VisionWorker
 app = Flask(__name__)
 
 camera = CameraManager(width=320, height=240, fps=10)
-movement = MovementController(forward_speed=8, pulse_speed=10, pulse_duration=0.45)
+movement = MovementController(forward_speed=4, pulse_speed=5, pulse_duration=0.45)
 vision = VisionWorker(camera, movement, target_fps=8, jpeg_quality=65)
 
 

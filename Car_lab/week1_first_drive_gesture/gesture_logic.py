@@ -1,6 +1,6 @@
 def detect_steering_gesture(hand_landmarks):
     """
-    Decide whether the hand gesture means left, right, straight, or unknown.
+    Decide whether the hand gesture means left, right, or unknown.
 
     Args:
         hand_landmarks: MediaPipe landmarks for one detected hand.
@@ -8,8 +8,11 @@ def detect_steering_gesture(hand_landmarks):
 
     Returns:
         tuple: (direction, keypoints_used)
-            direction: "left", "right", "straight", or "unknown"
+            direction: "left", "right", or "unknown"
             keypoints_used: list of landmark indices used by your logic
+
+    Returning "unknown" means no explicit left/right gesture was detected.
+    The app will center the wheels while the car keeps moving slowly forward.
 
     Suggested first approach:
         Use the vector from the index-finger base (5) to the index-finger tip

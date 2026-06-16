@@ -113,7 +113,7 @@
     }
 
     .steer-row {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
     }
 
     .manual-grid {
@@ -237,7 +237,6 @@
 
       <div class="steer-row">
         <button onclick="sendCommand('/api/steer/left')">Steer Left</button>
-        <button onclick="sendCommand('/api/steer/straight')">Straight</button>
         <button onclick="sendCommand('/api/steer/right')">Steer Right</button>
       </div>
 
@@ -287,6 +286,10 @@
           <span class="value" id="fps">-</span>
         </div>
         <div class="status-item">
+          <span class="label">Camera</span>
+          <span class="value" id="camera">-</span>
+        </div>
+        <div class="status-item">
           <span class="label">Last Command</span>
           <span class="value" id="lastCommand">-</span>
         </div>
@@ -316,6 +319,9 @@
       document.getElementById('mediapipe').textContent = data.mediapipe_available ? 'Ready' : 'Missing';
       document.getElementById('hardware').textContent = data.hardware_connected ? 'Connected' : 'Simulation';
       document.getElementById('fps').textContent = data.fps || '0';
+      document.getElementById('camera').textContent = data.camera_error
+        ? `${data.camera_method}: ${data.camera_error}`
+        : data.camera_method || '-';
       document.getElementById('lastCommand').textContent = data.last_command || 'none';
       document.getElementById('mediapipe').className = data.mediapipe_available ? 'value ok' : 'value bad';
       document.getElementById('hardware').className = data.hardware_connected ? 'value ok' : 'value bad';
@@ -329,6 +335,10 @@
         const message = document.getElementById('message');
         if (data.gesture_error) {
           message.textContent = data.gesture_error;
+        } else if (data.hardware_error) {
+          message.textContent = data.hardware_error;
+        } else if (data.camera_error) {
+          message.textContent = data.camera_error;
         }
       } catch (_error) {
       }

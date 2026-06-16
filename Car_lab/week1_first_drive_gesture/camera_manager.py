@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import subprocess
+import shutil
 import threading
 import time
 
@@ -20,6 +21,7 @@ class CameraManager:
         self.process = None
         self.thread = None
         self.method = "not_started"
+        self.error = ""
         self._lock = threading.Lock()
 
     def start(self):
@@ -30,25 +32,27 @@ class CameraManager:
         self.thread.start()
 
     def _capture_loop(self):
-        if self._libcamera_available():
-            if self._run_libcamera_loop():
+        camera_command = self._camera_command()
+        if camera_command:
+            if self._run_camera_command_loop(camera_command):
                 return
+        else:
+            self.error = "rpicam-vid/libcamera-vid not found"
 
         if self._run_opencv_loop():
             return
 
         self._placeholder_loop("Camera unavailable")
 
-    def _libcamera_available(self):
-        try:
-            result = subprocess.run(["which", "libcamera-vid"], capture_output=True, text=True)
-            return result.returncode == 0
-        except Exception:
-            return False
+    def _camera_command(self):
+        for command in ("rpicam-vid", "libcamera-vid"):
+            if shutil.which(command):
+                return command
+        return None
 
-    def _run_libcamera_loop(self):
+    def _run_camera_command_loop(self, camera_command):
         cmd = [
-            "libcamera-vid",
+            camera_command,
             "--timeout", "0",
             "--width", str(self.width),
             "--height", str(self.height),
@@ -60,7 +64,8 @@ class CameraManager:
         ]
 
         try:
-            self.method = "libcamera"
+            self.method = camera_command
+            self.error = ""
             self.process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -68,7 +73,8 @@ class CameraManager:
                 bufsize=0,
             )
         except Exception as exc:
-            print(f"libcamera-vid startup failed: {exc}")
+            self.error = f"{camera_command} startup failed: {exc}"
+            print(self.error)
             return False
 
         buffer = b""
@@ -90,6 +96,7 @@ class CameraManager:
                 with self._lock:
                     self.current_frame = frame
 
+        self.error = f"{camera_command} stopped before producing frames"
         return False
 
     def _run_opencv_loop(self):
@@ -97,6 +104,7 @@ class CameraManager:
             cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
             if not cap.isOpened():
                 cap.release()
+                self.error = "OpenCV could not open /dev/video0"
                 return False
 
             self.method = "opencv"
@@ -104,17 +112,26 @@ class CameraManager:
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
             cap.set(cv2.CAP_PROP_FPS, self.fps)
 
+            failed_reads = 0
             while self.running:
                 ok, frame = cap.read()
                 if ok and frame is not None:
+                    failed_reads = 0
                     with self._lock:
                         self.current_frame = cv2.resize(frame, (self.width, self.height))
+                else:
+                    failed_reads += 1
+                    if failed_reads >= max(10, self.fps * 3):
+                        cap.release()
+                        self.error = "OpenCV opened /dev/video0 but read no frames"
+                        return False
                 time.sleep(1.0 / max(1, self.fps))
 
             cap.release()
             return True
         except Exception as exc:
-            print(f"OpenCV camera fallback failed: {exc}")
+            self.error = f"OpenCV camera fallback failed: {exc}"
+            print(self.error)
             return False
 
     def _placeholder_loop(self, message):

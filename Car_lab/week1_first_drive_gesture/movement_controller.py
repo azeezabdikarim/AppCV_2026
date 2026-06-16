@@ -4,8 +4,10 @@ import threading
 
 try:
     from picarx import Picarx
-except ImportError:
+    PICARX_IMPORT_ERROR = ""
+except ImportError as exc:
     Picarx = None
+    PICARX_IMPORT_ERROR = str(exc)
 
 
 class MovementController:
@@ -13,19 +15,20 @@ class MovementController:
 
     STEERING_ANGLES = {
         "left": -28,
-        "straight": 0,
         "right": 28,
     }
+    CENTER_ANGLE = 0
 
-    def __init__(self, forward_speed=8, pulse_speed=10, pulse_duration=0.45):
+    def __init__(self, forward_speed=4, pulse_speed=5, pulse_duration=0.45):
         self.forward_speed = forward_speed
         self.pulse_speed = pulse_speed
         self.pulse_duration = pulse_duration
         self.forward_active = False
-        self.current_direction = "straight"
-        self.current_angle = 0
+        self.current_direction = "centered"
+        self.current_angle = self.CENTER_ANGLE
         self.last_command = "none"
         self.command_count = 0
+        self.hardware_error = ""
         self._pulse_timer = None
         self._lock = threading.Lock()
 
@@ -34,10 +37,12 @@ class MovementController:
                 self.picar = Picarx()
                 self.picar.set_dir_servo_angle(0)
             except Exception as exc:
-                print(f"PiCar-X hardware initialization failed: {exc}")
+                self.hardware_error = f"PiCar-X hardware initialization failed: {exc}"
+                print(self.hardware_error)
                 self.picar = None
         else:
-            print("picarx module not available; running movement controller in simulation mode.")
+            self.hardware_error = f"picarx import failed: {PICARX_IMPORT_ERROR}"
+            print(f"{self.hardware_error}; running movement controller in simulation mode.")
             self.picar = None
 
     def is_hardware_connected(self):
@@ -48,7 +53,6 @@ class MovementController:
             self.forward_active = True
             self.last_command = "start_forward"
             self.command_count += 1
-            self._apply_steering_locked(self.current_direction)
             if self.picar:
                 self.picar.forward(self.forward_speed)
         return True, f"Forward drive started at {self.forward_speed}% speed"
@@ -56,8 +60,7 @@ class MovementController:
     def stop(self):
         with self._lock:
             self.forward_active = False
-            self.current_direction = "straight"
-            self.current_angle = 0
+            self._center_steering_locked()
             self.last_command = "stop"
             self.command_count += 1
             if self._pulse_timer:
@@ -65,7 +68,6 @@ class MovementController:
                 self._pulse_timer = None
             if self.picar:
                 self.picar.stop()
-                self.picar.set_dir_servo_angle(0)
         return True, "Car stopped"
 
     def emergency_stop(self):
@@ -82,6 +84,15 @@ class MovementController:
                 self.picar.forward(self.forward_speed)
 
         return True, f"Steering set to {direction}"
+
+    def center_steering(self, source="centered"):
+        with self._lock:
+            self._center_steering_locked()
+            self.last_command = source
+            if self.forward_active and self.picar:
+                self.picar.forward(self.forward_speed)
+
+        return True, "Steering centered"
 
     def manual_pulse(self, direction):
         if direction == "stop":
@@ -102,7 +113,7 @@ class MovementController:
             elif direction == "right":
                 self._apply_steering_locked("right")
             else:
-                self._apply_steering_locked("straight")
+                self._center_steering_locked()
 
             if self.picar:
                 if direction == "backward":
@@ -124,9 +135,7 @@ class MovementController:
                 return
             if self.picar:
                 self.picar.stop()
-                self.picar.set_dir_servo_angle(0)
-            self.current_direction = "straight"
-            self.current_angle = 0
+            self._center_steering_locked()
             self._pulse_timer = None
 
     def _apply_steering_locked(self, direction):
@@ -134,6 +143,12 @@ class MovementController:
         self.current_angle = self.STEERING_ANGLES[direction]
         if self.picar:
             self.picar.set_dir_servo_angle(self.current_angle)
+
+    def _center_steering_locked(self):
+        self.current_direction = "centered"
+        self.current_angle = self.CENTER_ANGLE
+        if self.picar:
+            self.picar.set_dir_servo_angle(self.CENTER_ANGLE)
 
     def get_status(self):
         with self._lock:
@@ -145,6 +160,7 @@ class MovementController:
                 "forward_speed": self.forward_speed,
                 "last_command": self.last_command,
                 "command_count": self.command_count,
+                "hardware_error": self.hardware_error,
             }
 
     def cleanup(self):

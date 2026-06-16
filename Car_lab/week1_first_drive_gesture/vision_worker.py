@@ -16,8 +16,7 @@ except ImportError:
 class VisionWorker:
     """Runs MediaPipe once per frame and caches debug JPEGs for Flask clients."""
 
-    VALID_DIRECTIONS = {"left", "right", "straight", "unknown"}
-    UNKNOWN_STRAIGHTEN_SECONDS = 0.7
+    VALID_DIRECTIONS = {"left", "right", "unknown"}
 
     def __init__(self, camera, movement_controller, target_fps=8, jpeg_quality=65):
         self.camera = camera
@@ -27,7 +26,6 @@ class VisionWorker:
         self.running = False
         self.thread = None
         self.latest_jpeg = None
-        self.last_valid_gesture_time = 0.0
         self.gesture_direction = "unknown"
         self.gesture_error = ""
         self.keypoints_used = []
@@ -98,12 +96,10 @@ class VisionWorker:
                 direction, keypoints_used, error = self._call_student_logic(hand_landmarks.landmark)
                 self._draw_landmarks(debug_frame, hand_landmarks, keypoints_used)
 
-        now = time.time()
-        if direction in {"left", "right", "straight"}:
-            self.last_valid_gesture_time = now
+        if direction in {"left", "right"}:
             self.movement_controller.apply_gesture_direction(direction)
-        elif now - self.last_valid_gesture_time > self.UNKNOWN_STRAIGHTEN_SECONDS:
-            self.movement_controller.apply_gesture_direction("straight")
+        else:
+            self.movement_controller.center_steering(source="gesture_unknown")
 
         self._update_fps()
         self._draw_overlay(debug_frame, direction, hand_detected, error)
@@ -218,6 +214,7 @@ class VisionWorker:
                 "fps": round(self.fps, 1),
                 "target_fps": self.target_fps,
                 "camera_method": self.camera.method,
+                "camera_error": self.camera.error,
                 "car_network": "CV-PI-NET",
                 "viewer_network": "CV-CAR-VIEW-5G",
             }
