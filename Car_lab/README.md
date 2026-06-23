@@ -19,13 +19,6 @@ The multi-week `core` app uses one background vision/control worker for Weeks
 camera frame -> active feature processing -> debug overlay -> cached JPEG
 ```
 
-The Flask `/video_feed` route serves the cached JPEG. This means a second
-browser viewer still adds network traffic, but it does not run a second
-line-following/object-detection/speed-estimation pass and does not JPEG-encode
-the same frame twice. New car-lab features should plug into
-`core/robot_controller.py::process_autonomous_frame()` rather than adding
-separate per-client video processing routes.
-
 ## Week 1 network rule
 
 - Pi 5 cars join `CV-PI-NET`.
