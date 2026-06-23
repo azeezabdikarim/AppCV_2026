@@ -7,11 +7,13 @@ import sys
 import socket
 from robot_controller import robot
 from camera_manager import camera
+from vision_worker import CoreVisionWorker
 from utils.console_logger import console_logger
 
 
 # Initialize Flask app
 app = Flask(__name__)
+vision_worker = CoreVisionWorker(camera, robot)
 
 # Global state for tracking commands
 last_command = "none"
@@ -42,6 +44,7 @@ def get_local_ip():
 def cleanup_handler():
     """Clean up resources on exit"""
     print("\nShutting down...")
+    vision_worker.stop()
     robot.cleanup()
     camera.cleanup()
 
@@ -57,25 +60,17 @@ def index():
 
 @app.route('/video_feed')
 def video_feed():
-    """Video streaming route with autonomous processing"""
+    """Video streaming route serving cached worker output."""
     def generate():
+        last_frame_id = -1
         while True:
-            # Get raw frame from camera
-            frame = camera.get_frame()
-            
-            # Process frame for autonomous features and debug visualization
-            processed_frame = robot.process_autonomous_frame(frame)
-            
-            # Convert to JPEG for streaming
-            import cv2
-            ret, buffer = cv2.imencode('.jpg', processed_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
-            if ret:
-                frame_bytes = buffer.tobytes()
-            else:
-                frame_bytes = camera.get_jpeg_frame()
-            
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            frame_id, frame_bytes = vision_worker.get_jpeg()
+            if frame_bytes is not None and frame_id != last_frame_id:
+                last_frame_id = frame_id
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            import time
+            time.sleep(0.01)
     
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -256,7 +251,7 @@ def set_debug_mode():
         return jsonify({
             'success': success,
             'debug_mode': robot.debug_mode,
-            'available_modes': robot.available_modes,
+            'available_modes': robot.get_available_debug_modes(),
             'message': f'Debug mode set to {mode}' if success else f'Invalid debug mode: {mode}'
         })
     except Exception as e:
@@ -357,13 +352,15 @@ def move_robot(direction):
 @app.route('/status')
 def get_status():
     """Get current robot status"""
-    return jsonify({
+    status = {
         'last_command': last_command,
         'command_count': command_count,
         'is_moving': robot.movement_controller.is_moving if robot.movement_controller.is_hardware_connected() else False,
         'robot_connected': robot.movement_controller.is_hardware_connected(),
         'autonomous_mode': robot.autonomous_mode
-    })
+    }
+    status.update(vision_worker.get_status())
+    return jsonify(status)
 
 @app.route('/test')
 def test_robot():
@@ -452,18 +449,13 @@ def speed_test_control():
 
 @app.route('/process_speed_frames')
 def process_speed_frames():
-    """Lightweight speed estimation without video streaming"""
+    """Return cached speed data without running a second vision pipeline."""
     try:
-        # Get raw frame from camera (no encoding)
-        current_frame = camera.get_frame()
-        
-        # Run speed estimation only (no autonomous processing)
-        speed = robot.calculate_speed_only(current_frame)
-        
-        # Return minimal JSON (not full debug data)
+        import time
+        speed_data = robot.get_speed_data()
         return jsonify({
-            'current_speed': speed,
-            'smoothed_speed': robot.get_smoothed_speed(),
+            'current_speed': speed_data.get('current_speed', 0.0),
+            'smoothed_speed': speed_data.get('smoothed_speed', 0.0),
             'timestamp': time.time()
         })
     except Exception as e:
@@ -472,6 +464,7 @@ def process_speed_frames():
 if __name__ == '__main__':
     try:
         camera.start_streaming()
+        vision_worker.start()
         local_ip = get_local_ip()
         
         print("Starting Flask server...")

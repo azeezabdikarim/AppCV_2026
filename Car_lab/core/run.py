@@ -67,18 +67,19 @@ def main():
     
     try:
         # Run the Flask application
-        from flask_control import app, camera
+        from flask_control import app, camera, vision_worker
         
         # Start camera
         print("📷 Initializing camera (may take a few seconds)...")
         camera.start_streaming()
+        vision_worker.start()
         time.sleep(3)  # Give camera more time to start
         
         # Get the actual IP address
         local_ip = get_local_ip()
         
         print("\n🚀 Server starting...")
-        print("📷 Camera streaming with libcamera-vid")
+        print("📷 Camera streaming with cached vision/control worker")
         print("🌐 Web interface available at:")
         print("   - Local: http://localhost:5000")
         print(f"   - Network: http://{local_ip}:5000")

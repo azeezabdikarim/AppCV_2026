@@ -6,19 +6,25 @@ import threading
 import time
 import subprocess
 import logging
+import shutil
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class CameraManager:
-    def __init__(self):
-        """Initialize camera using libcamera-vid streaming"""
-        self.frame = None
+    def __init__(self, width=320, height=240, fps=15):
+        """Initialize camera using rpicam/libcamera streaming with OpenCV fallback."""
+        self.width = width
+        self.height = height
+        self.fps = fps
         self.is_running = False
         self.lock = threading.Lock()
         self.process = None
         self.current_frame = None
+        self.capture_thread = None
+        self.method = "not_started"
+        self.error = ""
         
         logger.info("Camera manager initialized")
     
@@ -47,48 +53,73 @@ class CameraManager:
         return frame
     
     def start_streaming(self):
-        """Start the camera streaming using libcamera-vid"""
+        """Start the camera streaming in a background thread."""
         if not self.is_running:
             self.is_running = True
             self.capture_thread = threading.Thread(target=self._capture_frames)
             self.capture_thread.daemon = True
             self.capture_thread.start()
             logger.info("Camera streaming started")
+
+    def _camera_command(self):
+        """Return the camera CLI available on this Pi OS image."""
+        for command in ("rpicam-vid", "libcamera-vid"):
+            if shutil.which(command):
+                return command
+        return None
     
     def _capture_frames(self):
-        """Continuously capture frames using libcamera-vid streaming (from working example)"""
-        logger.info("Starting libcamera-vid streaming...")
-        
+        """Continuously capture frames using Pi camera CLI, then OpenCV fallback."""
+        camera_command = self._camera_command()
+        if camera_command and self._run_camera_command_loop(camera_command):
+            return
+
+        if not camera_command:
+            self.error = "rpicam-vid/libcamera-vid not found"
+            logger.error(self.error)
+
+        if self._run_opencv_loop():
+            return
+
+        self._fallback_placeholder_loop("Camera unavailable")
+
+    def _run_camera_command_loop(self, camera_command):
+        logger.info(f"Starting {camera_command} streaming...")
+
         try:
-            # Start libcamera-vid streaming to stdout (exact command from working example)
             cmd = [
-                "libcamera-vid",
-                "-t", "0",  # Infinite timeout
-                "--width", "320",
-                "--height", "240",
-                "--framerate", "15",
-                "-o", "-",  # Output to stdout
+                camera_command,
+                "--timeout", "0",
+                "--width", str(self.width),
+                "--height", str(self.height),
+                "--framerate", str(self.fps),
+                "--output", "-",
                 "--codec", "mjpeg",
                 "--inline",
-                "-n"  # No preview
+                "-n",
             ]
             
-            self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.method = camera_command
+            self.error = ""
+            self.process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                bufsize=0,
+            )
             
-            # Test if the process starts successfully
             time.sleep(1)
             if self.process.poll() is not None:
-                stderr_output = self.process.stderr.read().decode('utf-8')
-                logger.error(f"libcamera-vid failed to start. Error: {stderr_output}")
-                self._fallback_placeholder_loop()
-                return
+                self.error = f"{camera_command} failed to start"
+                logger.error(self.error)
+                return False
             
-            logger.info("libcamera-vid streaming started successfully")
+            logger.info(f"{camera_command} streaming started successfully")
             
             buffer = b""
-            while self.is_running:
+            while self.is_running and self.process.poll() is None:
                 try:
-                    chunk = self.process.stdout.read(1024)
+                    chunk = self.process.stdout.read(4096)
                     if not chunk:
                         break
                     
@@ -109,7 +140,7 @@ class CameraManager:
                         
                         if frame is not None:
                             with self.lock:
-                                self.current_frame = frame.copy()
+                                self.current_frame = frame
                 
                 except Exception as e:
                     logger.error(f"Streaming error: {e}")
@@ -117,20 +148,63 @@ class CameraManager:
             
             if self.process:
                 self.process.terminate()
+
+            self.error = f"{camera_command} stopped before producing frames"
+            return False
                 
         except Exception as e:
-            logger.error(f"libcamera streaming setup failed: {e}")
-            self._fallback_placeholder_loop()
+            self.error = f"{camera_command} streaming setup failed: {e}"
+            logger.error(self.error)
+            return False
+
+    def _run_opencv_loop(self):
+        """Fallback for USB/V4L2 camera access."""
+        try:
+            cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+            if not cap.isOpened():
+                cap.release()
+                self.error = "OpenCV could not open /dev/video0"
+                logger.error(self.error)
+                return False
+
+            self.method = "opencv"
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+            cap.set(cv2.CAP_PROP_FPS, self.fps)
+
+            failed_reads = 0
+            while self.is_running:
+                ok, frame = cap.read()
+                if ok and frame is not None:
+                    failed_reads = 0
+                    with self.lock:
+                        self.current_frame = cv2.resize(frame, (self.width, self.height))
+                else:
+                    failed_reads += 1
+                    if failed_reads >= max(10, self.fps * 3):
+                        cap.release()
+                        self.error = "OpenCV opened /dev/video0 but read no frames"
+                        logger.error(self.error)
+                        return False
+                time.sleep(1.0 / max(1, self.fps))
+
+            cap.release()
+            return True
+        except Exception as e:
+            self.error = f"OpenCV camera fallback failed: {e}"
+            logger.error(self.error)
+            return False
     
-    def _fallback_placeholder_loop(self):
+    def _fallback_placeholder_loop(self, message):
         """Generate placeholder frames when camera fails"""
-        logger.info("Using placeholder frames due to camera failure")
+        self.method = "placeholder"
+        logger.info(f"Using placeholder frames due to camera failure: {self.error}")
         frame_counter = 0
         while self.is_running:
             frame_counter += 1
-            message = f"Camera Error - Frame {frame_counter}"
+            frame_message = f"{message} - Frame {frame_counter}"
             with self.lock:
-                self.current_frame = self._create_placeholder_frame(message)
+                self.current_frame = self._create_placeholder_frame(frame_message)
             time.sleep(0.1)
     
     def get_frame(self):

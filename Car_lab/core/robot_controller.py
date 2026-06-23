@@ -26,9 +26,9 @@ except ImportError:
 # Students enable features when they're ready
 # =============================================================================
 FEATURES_ENABLED = {
-    'line_following': False,   # Week 2 - Enable when ready
+    'line_following': True,   # Week 2 - Enable when ready
     'sign_detection': False,   # Week 3 - Student enables when implemented
-    'speed_estimation': True   # Week 4 - Student enables when implemented
+    'speed_estimation': False   # Week 4 - Student enables when implemented
 }
 
 class RobotController:
@@ -66,7 +66,7 @@ class RobotController:
             
             # Debug mode system
             self.debug_mode = "line_following"  # Default to Week 2
-            self.available_modes = ["line_following", "object_detection", "speed_estimation", "full_system"]
+            self.available_modes = ["line_following", "object_detection", "speed_estimation"]
             
             # Autonomous mode variables
             self.autonomous_mode = False
@@ -313,20 +313,34 @@ class RobotController:
     
     def set_debug_mode(self, mode):
         """Switch debug visualization mode"""
-        if mode in self.available_modes:
+        available_modes = self.get_available_debug_modes()
+        if mode in available_modes:
             self.debug_mode = mode
             print(f"Debug mode set to: {mode}")
             return True
         else:
-            print(f"❌ Invalid debug mode: {mode}. Available: {self.available_modes}")
+            print(f"❌ Invalid debug mode: {mode}. Available: {available_modes}")
             return False
+
+    def get_available_debug_modes(self):
+        """Return debug modes whose backing feature actually loaded."""
+        mode_features = {
+            "line_following": "line_following",
+            "object_detection": "sign_detection",
+            "speed_estimation": "speed_estimation",
+        }
+        return [
+            mode
+            for mode, feature in mode_features.items()
+            if self.feature_status.get(feature) == "Active"
+        ]
     
     def get_debug_mode_status(self):
         """Get current debug mode and performance metrics"""
         current_time = time.time()
         return {
             'debug_mode': self.debug_mode,
-            'available_modes': self.available_modes,
+            'available_modes': self.get_available_debug_modes(),
             'detection_fps': 1.0 / self.detection_interval if self.detection_interval > 0 else 0,
             'depth_fps': 1.0 / self.depth_interval if self.depth_interval > 0 else 0,
             'last_detection_age': current_time - self.timing_utils.last_detection_time,
@@ -387,8 +401,12 @@ class RobotController:
     # =============================================================================
     
     def set_debug_level(self, level):
-        """Set debugging visualization level (0-4)"""
-        self.debug_level = max(0, min(4, level))
+        """Set debug overlay selection as a bitmask (0-7).
+
+        Views compose independently: ROI box=1, center+error=2, edges=4.
+        0 means no overlay (off).
+        """
+        self.debug_level = max(0, min(7, level))
         print(f"Debug level set to: {self.debug_level}")
     
     def set_frame_rate(self, fps):
@@ -512,7 +530,8 @@ class RobotController:
             'camera_position': self.movement_controller.get_camera_position(),
             'target_fps': self.target_fps,
             'debug_level': self.debug_level,
-            'debug_mode': self.debug_mode
+            'debug_mode': self.debug_mode,
+            'available_modes': self.get_available_debug_modes()
         }
     
     def get_autonomous_button_text(self):

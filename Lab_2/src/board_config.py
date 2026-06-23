@@ -19,8 +19,8 @@ CHECKERBOARD_INNER_CORNERS = (
 CHARUCO_SQUARES_X = 5
 CHARUCO_SQUARES_Y = 7
 
-SQUARE_SIZE_M = 0.03
-CHARUCO_MARKER_SIZE_M = 0.022
+SQUARE_SIZE_M = 0.03 # The dimensions of the large charuco square
+CHARUCO_MARKER_SIZE_M = 0.022 # The dimensions of the inner charuco square
 
 ARUCO_DICTIONARY_ID = cv2.aruco.DICT_4X4_50
 

@@ -25,6 +25,10 @@ class MovementController:
                 print("WARNING: Running without PiCar-X hardware")
                 
             self.is_moving = False
+
+            # Lowest non-zero PiCar-X speed command for autonomous labs.
+            # A value of 0 stops the motors; keep default runs deliberately slow.
+            self.autonomous_speed = 1
             
             # Camera positioning
             self.camera_pan_angle = 0   # -90 to +90 degrees
@@ -109,7 +113,7 @@ class MovementController:
         if self.picar and not self.is_moving:
             try:
                 self.picar.set_dir_servo_angle(steering_angle)
-                self.picar.forward(1)  # 1% speed
+                self.picar.forward(self.autonomous_speed)
             except Exception as e:
                 print(f"Autonomous control error: {e}")
     

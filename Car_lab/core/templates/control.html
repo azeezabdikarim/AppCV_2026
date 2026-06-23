@@ -72,21 +72,18 @@
         }
 
         .debug-tab.active {
-            background: white;
-            color: #2c3e50;
+            background: #e8f4fd;
+            color: #0b5ed7;
             border-bottom-color: #007bff;
+            box-shadow: inset 0 3px 0 #007bff;
         }
 
         .debug-tab.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #f8f9fa;
-            color: #adb5bd;
+            display: none;
         }
 
         .debug-tab.disabled:hover {
-            background: #f8f9fa;
-            color: #adb5bd;
+            display: none;
         }
         
         .video-container {
@@ -684,6 +681,17 @@
                 </div>
                 <div id="console-output" class="console-output"></div>
             </div>
+
+            <!-- Autonomous Controls (Line Following & Object Detection) -->
+            <div class="autonomous-controls" id="autonomousControls">
+                <h3>🤖 Autonomous Mode</h3>
+                <button class="autonomous-btn start-autonomous" onclick="startAutonomous()">
+                    🚀 Start Line Following
+                </button>
+                <button class="autonomous-btn stop-autonomous" onclick="stopAutonomous()">
+                    ⏹️ Stop Autonomous Mode
+                </button>
+            </div>
             
             <!-- Camera Positioning Controls -->
             <div class="camera-controls">
@@ -738,17 +746,6 @@
                     ⬇️ Backward (S)
                 </button>
                 <div></div>
-            </div>
-            
-            <!-- Autonomous Controls (Line Following & Object Detection) -->
-            <div class="autonomous-controls" id="autonomousControls">
-                <h3>🤖 Autonomous Mode</h3>
-                <button class="autonomous-btn start-autonomous" onclick="startAutonomous()">
-                    🚀 Start Line Following
-                </button>
-                <button class="autonomous-btn stop-autonomous" onclick="stopAutonomous()">
-                    ⏹️ Stop Autonomous Mode
-                </button>
             </div>
 
             <!-- Speed Estimation Controls (only visible in speed estimation mode) -->
@@ -884,13 +881,16 @@
                 <!-- Line Following Specific Controls -->
                 <div class="debug-content active" id="controls-line_following">
                     <div class="control-group">
-                        <label for="debugLevel">Debug Level:</label>
-                        <div class="slider-container">
-                            <input type="range" id="debugLevel" class="slider" min="0" max="4" value="0" 
-                                   onchange="setDebugLevel(this.value)">
-                            <span class="value-display" id="debugLevelValue">0</span>
+                        <label>Debug Views:</label>
+                        <div class="debug-checkbox-group" style="display:flex; flex-direction:column; gap:6px; margin:6px 0;">
+                            <label style="display:flex; align-items:center; gap:8px; font-weight:normal;">
+                                <input type="checkbox" class="debug-view" value="1" onchange="updateDebugViews()"> ROI box</label>
+                            <label style="display:flex; align-items:center; gap:8px; font-weight:normal;">
+                                <input type="checkbox" class="debug-view" value="2" onchange="updateDebugViews()"> Center &amp; error</label>
+                            <label style="display:flex; align-items:center; gap:8px; font-weight:normal;">
+                                <input type="checkbox" class="debug-view" value="4" onchange="updateDebugViews()"> Canny edges</label>
                         </div>
-                        <small>0=Off, 1=Basic, 2=Edges, 3=Lines, 4=Full</small>
+                        <small>Select any combination. Nothing selected = off. Error &amp; steering are always in the sidebar above.</small>
                     </div>
                     
                     <div class="control-group">
@@ -983,6 +983,12 @@
         // =================================================================
         
         function switchDebugTab(mode) {
+            if (!isTabEnabled(mode)) {
+                return;
+            }
+
+            currentDebugMode = mode;
+
             // Update tab visual states
             document.querySelectorAll('.debug-tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(`tab-${mode}`).classList.add('active');
@@ -1046,21 +1052,23 @@
                 'speed_estimation': 'speed_estimation'
             };
 
+            const activeModes = [];
+
             Object.keys(modeToFeature).forEach(mode => {
                 const tab = document.getElementById(`tab-${mode}`);
                 const featureStatus = featureStates[modeToFeature[mode]];
                 
                 if (featureStatus === 'Active') {
                     tab.classList.remove('disabled');
+                    activeModes.push(mode);
                 } else {
                     tab.classList.add('disabled');
-                    
-                    // If current tab becomes disabled, switch to line following
-                    if (currentDebugMode === mode && mode !== 'line_following') {
-                        switchDebugTab('line_following');
-                    }
                 }
             });
+
+            if (!activeModes.includes(currentDebugMode) && activeModes.length > 0) {
+                switchDebugTab(activeModes[0]);
+            }
         }
         
         // =================================================================
@@ -1309,9 +1317,18 @@
         // DEBUG CONTROLS (FIXED - Using Query Parameters)
         // =================================================================
         
+        function updateDebugViews() {
+            let mask = 0;
+            document.querySelectorAll('.debug-view:checked').forEach(cb => {
+                mask += parseInt(cb.value, 10);
+            });
+            setDebugLevel(mask);
+        }
+
         function setDebugLevel(level) {
-            document.getElementById('debugLevelValue').textContent = level;
-            
+            const valueDisplay = document.getElementById('debugLevelValue');
+            if (valueDisplay) valueDisplay.textContent = level;
+
             fetch(`/set_debug_level?level=${level}`)
                 .then(response => response.json())
                 .then(data => {
