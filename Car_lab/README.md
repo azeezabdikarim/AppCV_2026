@@ -5,9 +5,9 @@ This directory contains the 2026 PiCar-X lab code.
 ## Week layout
 
 - `week1_first_drive_gesture`: first-drive web UI and MediaPipe gesture steering.
-- `week2_line_following`: shifted copy of the 2025 line-following lab.
-- `week3_object_detection`: shifted copy of the 2025 object-detection/sign-policy lab.
-- `week4_speed_estimation`: shifted copy of the 2025 optical-flow speed-estimation lab.
+- `week2_line_following`: course Lab 9, line following with classical CV and PID.
+- `week3_speed_estimation`: course Lab 10, optical-flow speed estimation.
+- `week4_object_detection`: course Lab 11, future model fine-tuning/sign-detection work.
 - `core`: full multi-week web UI used after the Week 1 introduction.
 
 ## Core stream/control architecture
@@ -76,7 +76,7 @@ conda activate app_cv
 python app.py
 ```
 
-Students should edit only:
+You should edit only:
 
 ```text
 week1_first_drive_gesture/gesture_logic.py

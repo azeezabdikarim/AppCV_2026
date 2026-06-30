@@ -26,9 +26,9 @@ except ImportError:
 # Students enable features when they're ready
 # =============================================================================
 FEATURES_ENABLED = {
-    'line_following': True,   # Week 2 - Enable when ready
-    'sign_detection': False,   # Week 3 - Student enables when implemented
-    'speed_estimation': False   # Week 4 - Student enables when implemented
+    'line_following': False,   # Week 2 - Temporarily disabled for the Week 3 lab
+    'speed_estimation': True,  # Week 3 - Current lab
+    'sign_detection': False    # Week 4 - Student enables when implemented
 }
 
 class RobotController:
@@ -39,7 +39,7 @@ class RobotController:
             # STUDENT TUNABLE PARAMETERS - Modify these as needed
             # =================================================================
             
-            # Week 3: Object Detection & Depth Analysis Performance
+            # Week 4: Object Detection & Depth Analysis Performance
             self.detection_interval = 0.5    # Run object detection every 0.5 seconds
             self.depth_interval = 1.0        # Run depth analysis every 1.0 seconds
             self.sign_stop_duration = 2.0    # Seconds to stop for detected signs
@@ -48,6 +48,7 @@ class RobotController:
             # Debug and visualization settings
             self.debug_level = 0             # 0-4, higher = more debug info
             self.target_fps = 10             # Target frame rate for line following
+            self.speed_flow_overlay_enabled = True
             
             # =================================================================
             # SYSTEM VARIABLES - Don't modify these directly
@@ -65,8 +66,8 @@ class RobotController:
             self.debug_visualizer = DebugVisualizer()
             
             # Debug mode system
-            self.debug_mode = "line_following"  # Default to Week 2
-            self.available_modes = ["line_following", "object_detection", "speed_estimation"]
+            self.debug_mode = "speed_estimation"  # Default to Week 3
+            self.available_modes = ["line_following", "speed_estimation", "object_detection"]
             
             # Autonomous mode variables
             self.autonomous_mode = False
@@ -90,8 +91,8 @@ class RobotController:
             # Feature status tracking
             self.feature_status = {
                 'line_following': 'Disabled',
-                'sign_detection': 'Disabled', 
-                'speed_estimation': 'Disabled'
+                'speed_estimation': 'Disabled',
+                'sign_detection': 'Disabled'
             }
             
             # Debug data for sidebar (clean, minimal)
@@ -134,13 +135,13 @@ class RobotController:
             self.feature_status['line_following'] = 'Disabled'
             print("Line following disabled")
             
-        # Week 3: Sign Detection
+        # Week 4: Sign Detection
         if FEATURES_ENABLED['sign_detection']:
             try:
-                if 'week3_object_detection.sign_detector' in sys.modules:
-                    del sys.modules['week3_object_detection.sign_detector']
+                if 'week4_object_detection.sign_detector' in sys.modules:
+                    del sys.modules['week4_object_detection.sign_detector']
                     
-                from week3_object_detection.sign_detector import SignDetector
+                from week4_object_detection.sign_detector import SignDetector
                 self.sign_detector = SignDetector()
                 self.feature_status['sign_detection'] = 'Active'
                 print("✅ Sign detection enabled and loaded")
@@ -151,13 +152,13 @@ class RobotController:
             self.feature_status['sign_detection'] = 'Disabled'
             print("Sign detection disabled")
             
-        # Week 4: Speed Estimation
+        # Week 3: Speed Estimation
         if FEATURES_ENABLED['speed_estimation']:
             try:
-                if 'week4_speed_estimation.speed_estimator' in sys.modules:
-                    del sys.modules['week4_speed_estimation.speed_estimator']
+                if 'week3_speed_estimation.speed_estimator' in sys.modules:
+                    del sys.modules['week3_speed_estimation.speed_estimator']
                     
-                from week4_speed_estimation.speed_estimator import SpeedEstimator
+                from week3_speed_estimation.speed_estimator import SpeedEstimator
                 self.speed_estimator = SpeedEstimator()
                 self.feature_status['speed_estimation'] = 'Active' 
                 print("✅ Speed estimation enabled and loaded")
@@ -229,7 +230,7 @@ class RobotController:
         stopped_for_sign = (self.sign_stop_until is not None and current_time < self.sign_stop_until)
         in_cooldown = self.status_manager.is_in_cooldown(current_time)
         
-        # Week 3: Sign Detection (with timing and caching)
+        # Week 4: Sign Detection (with timing and caching)
         if self.sign_detector and FEATURES_ENABLED['sign_detection'] and not stopped_for_sign and not in_cooldown:
             detected_signs = self._run_detection_with_timing(frame)
             if self.sign_detector.should_stop(detected_signs, frame):
@@ -244,7 +245,7 @@ class RobotController:
             self.status_manager.start_cooldown(current_time, self.stop_cooldown_duration)
             console_logger.info("Stop cooldown activated")
         
-        # Week 4: Speed Estimation
+        # Week 3: Speed Estimation
         if self.speed_estimator and FEATURES_ENABLED['speed_estimation']:
             self.current_speed = self.speed_estimator.estimate_speed(frame, self.previous_frame)
             self.debug_data['current_speed'] = round(self.current_speed, 1)
@@ -284,14 +285,15 @@ class RobotController:
         
         # Route debug visualization based on mode
         if self.debug_mode == "object_detection":
-            display_frame = self.debug_visualizer.create_week2_debug_frame(
+            display_frame = self.debug_visualizer.create_object_detection_debug_frame(
                 display_frame, self.cache_manager, self.timing_utils, self.status_manager, self.sign_detector
             )
         elif self.debug_mode == "speed_estimation":
-            # Get complete speed data for visualization
-            speed_data = self.get_speed_data()
+            flow_vectors = []
+            if self.speed_estimator and hasattr(self.speed_estimator, 'get_flow_debug_data'):
+                flow_vectors = self.speed_estimator.get_flow_debug_data().get('vectors', [])
             display_frame = self.debug_visualizer.create_speed_estimation_debug_frame(
-                display_frame, self.current_speed, speed_data
+                frame, flow_vectors, self.speed_flow_overlay_enabled
             )
         # Default: line_following mode uses existing debug frame
         
@@ -326,8 +328,8 @@ class RobotController:
         """Return debug modes whose backing feature actually loaded."""
         mode_features = {
             "line_following": "line_following",
-            "object_detection": "sign_detection",
             "speed_estimation": "speed_estimation",
+            "object_detection": "sign_detection",
         }
         return [
             mode
@@ -414,6 +416,10 @@ class RobotController:
         self.target_fps = max(1, min(15, fps))
         self.frame_interval = 1.0 / self.target_fps
         print(f"Frame rate set to: {self.target_fps} fps")
+
+    def set_speed_flow_overlay(self, enabled):
+        """Show or hide optical-flow vectors in speed-estimation mode."""
+        self.speed_flow_overlay_enabled = bool(enabled)
     
     def update_pid_parameters(self, kp=None, ki=None, kd=None):
         """Update PID parameters during runtime"""
@@ -427,7 +433,7 @@ class RobotController:
         """Get clean debug data for sidebar"""
         data = self.debug_data.copy()
         
-        # Add Week 3 specific data when in object detection mode
+        # Add Week 4 specific data when in object detection mode
         if self.debug_mode == "object_detection":
             data.update({
                 'detections_count': len(self.cache_manager.cached_detections),
@@ -446,6 +452,9 @@ class RobotController:
             'speed_history': [],
             'motor_power': 0,
             'test_active': False,
+            'flow_magnitude': 0.0,
+            'features_tracked': 0,
+            'calibrated': False,
             'speed_thresholds': {
                 'fast': 0.4,
                 'medium': 0.15,
@@ -462,6 +471,12 @@ class RobotController:
                 
                 # Add current speed
                 speed_data['current_speed'] = round(self.current_speed, 3)
+                speed_data['calibrated'] = self.speed_estimator.is_calibrated()
+
+                if hasattr(self.speed_estimator, 'get_flow_debug_data'):
+                    flow_debug_data = self.speed_estimator.get_flow_debug_data()
+                    speed_data['flow_magnitude'] = flow_debug_data.get('flow_magnitude', 0.0)
+                    speed_data['features_tracked'] = flow_debug_data.get('features_tracked', 0)
             
             # Add motor status from movement controller
             if hasattr(self, '_current_test_speed'):
@@ -531,7 +546,8 @@ class RobotController:
             'target_fps': self.target_fps,
             'debug_level': self.debug_level,
             'debug_mode': self.debug_mode,
-            'available_modes': self.get_available_debug_modes()
+            'available_modes': self.get_available_debug_modes(),
+            'speed_flow_overlay_enabled': self.speed_flow_overlay_enabled
         }
     
     def get_autonomous_button_text(self):

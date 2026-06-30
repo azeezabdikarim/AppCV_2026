@@ -195,7 +195,7 @@
             font-weight: bold;
         }
 
-        /* Week 2 specific debug styles */
+        /* Object detection debug styles */
         .detection-list {
             max-height: 150px;
             overflow-y: auto;
@@ -236,7 +236,7 @@
             color: #856404;
         }
 
-        /* Week 3 specific debug styles */
+        /* Speed estimation debug styles */
         .speed-display {
             background: #d1ecf1;
             padding: 15px;
@@ -323,6 +323,25 @@
             font-weight: bold;
             margin-bottom: 5px;
             color: #495057;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .radio-option {
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            margin: 0 !important;
+            font-weight: normal !important;
+            cursor: pointer;
+        }
+
+        .radio-option input {
+            margin: 0;
         }
         
         .slider-container {
@@ -556,27 +575,6 @@
             border: 2px solid #333;
         }
 
-        #speedValue {
-            font-size: 48px;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            margin: 0;
-            transition: color 0.3s ease;
-        }
-
-        #speedUnit {
-            font-size: 18px;
-            color: #999;
-            margin-top: 5px;
-        }
-
-        #speedStatus {
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 10px;
-            transition: color 0.3s ease;
-        }
-
         .speed-test-buttons {
             display: flex;
             gap: 10px;
@@ -633,20 +631,6 @@
             font-weight: bold;
         }
 
-        .speed-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: #666;
-            margin-top: 10px;
-        }
-
-        /* Speed color classes */
-        .speed-stopped { color: #808080; }
-        .speed-slow { color: #28a745; }
-        .speed-medium { color: #ffa500; }
-        .speed-fast { color: #dc3545; }
-
         .log-level-INFO { color: #4CAF50; }
         .log-level-WARN { color: #FF9800; }
         .log-level-ERROR { color: #F44336; }
@@ -660,21 +644,21 @@
 
             <!-- Debug Mode Tabs -->
             <div class="debug-tabs">
-                <button class="debug-tab active" id="tab-line_following" onclick="switchDebugTab('line_following')">
+                <button class="debug-tab" id="tab-line_following" onclick="switchDebugTab('line_following')">
                     📍 Line Following
+                </button>
+                <button class="debug-tab active" id="tab-speed_estimation" onclick="switchDebugTab('speed_estimation')">
+                    🚀 Speed Estimation
                 </button>
                 <button class="debug-tab" id="tab-object_detection" onclick="switchDebugTab('object_detection')">
                     🎯 Object Detection
                 </button>
-                <button class="debug-tab" id="tab-speed_estimation" onclick="switchDebugTab('speed_estimation')">
-                    🚀 Speed Estimation
-                </button>
             </div>
             
-            <div class="video-container">
+            <div class="video-container" id="videoSection">
                 <img id="videoFeed" src="/video_feed" alt="Robot Camera Feed">
             </div>
-            <div class="console-container">
+            <div class="console-container" id="consoleContainer">
                 <div class="console-header">
                     <h3>Robot Console</h3>
                     <button onclick="clearConsole()" class="btn btn-sm">Clear</button>
@@ -685,7 +669,7 @@
             <!-- Autonomous Controls (Line Following & Object Detection) -->
             <div class="autonomous-controls" id="autonomousControls">
                 <h3>🤖 Autonomous Mode</h3>
-                <button class="autonomous-btn start-autonomous" onclick="startAutonomous()">
+                <button class="autonomous-btn start-autonomous" id="start-autonomous-btn" onclick="startAutonomous()">
                     🚀 Start Line Following
                 </button>
                 <button class="autonomous-btn stop-autonomous" onclick="stopAutonomous()">
@@ -694,7 +678,7 @@
             </div>
             
             <!-- Camera Positioning Controls -->
-            <div class="camera-controls">
+            <div class="camera-controls" id="cameraControls">
                 <h3>📷 Camera Positioning</h3>
                 <div class="camera-grid">
                     <button class="camera-preset" id="lookDownBtn" onclick="cameraLookDown()">
@@ -720,11 +704,11 @@
                 </div>
             </div>
             
-            <div class="keyboard-hint">
-                💡 <strong>Setup:</strong> Position camera using controls above, then start autonomous mode
+            <div class="keyboard-hint" id="setupHint">
+                💡 <strong>Setup:</strong> Position camera using controls above, then use speed tests or WASD controls
             </div>
             
-            <div class="controls-grid">
+            <div class="controls-grid" id="manualControls">
                 <div></div>
                 <button class="control-btn forward" onclick="moveRobot('forward')" data-key="w">
                     ⬆️ Forward (W)
@@ -749,26 +733,19 @@
             </div>
 
             <!-- Speed Estimation Controls (only visible in speed estimation mode) -->
-            <div class="speed-controls" id="speedControls" style="display: none;">
+            <div class="speed-controls" id="speedControls" style="display: block;">
                 <h3>🚀 Speed Estimation Testing</h3>
-                
-                <!-- Large Speed Display -->
-                <div class="speed-display">
-                    <div class="speed-value" id="speedValue">0.00</div>
-                    <div class="speed-unit">m/s</div>
-                    <div class="speed-status" id="speedStatus">STOPPED</div>
-                </div>
-                
+
                 <!-- Speed Test Buttons -->
                 <div class="speed-test-buttons">
-                    <button class="btn-speed" id="speedTest30" onclick="startSpeedTest(30)">
-                        Slow (30%)
+                    <button class="btn-speed" id="speedTest10" onclick="startSpeedTest(10)">
+                        Slow (10%)
                     </button>
-                    <button class="btn-speed" id="speedTest50" onclick="startSpeedTest(50)">
-                        Medium (50%)
+                    <button class="btn-speed" id="speedTest20" onclick="startSpeedTest(20)">
+                        Medium (20%)
                     </button>
-                    <button class="btn-speed" id="speedTest70" onclick="startSpeedTest(70)">
-                        Fast (70%)
+                    <button class="btn-speed" id="speedTest40" onclick="startSpeedTest(40)">
+                        Fast (40%)
                     </button>
                     <button class="btn-stop" id="speedStop" onclick="stopSpeedTest()">
                         Emergency Stop
@@ -780,25 +757,16 @@
                     <span id="motorPower">0</span>% Motor Power - Test Active (3 seconds)
                 </div>
                 
-                <!-- Speed Info -->
-                <div class="speed-info">
-                    <div>Raw: <span id="rawSpeed">0.000</span> m/s</div>
-                    <div>Smoothed: <span id="smoothedSpeed">0.000</span> m/s</div>
-                </div>
-                
-                <div class="keyboard-hint">
-                    💡 <strong>Testing:</strong> Use speed test buttons or WASD keys to validate speed estimation
-                </div>
             </div>
         </div>
         
         <div class="sidebar">
             <!-- Dynamic Debug Information Sidebar -->
             <div class="control-panel">
-                <h3 id="debugTitle">🔍 Line Following Debug</h3>
+                <h3 id="debugTitle">🚀 Speed Estimation Debug</h3>
                 
-                <!-- Week 1: Line Following Debug -->
-                <div class="debug-content active" id="debug-line_following">
+                <!-- Line Following Debug -->
+                <div class="debug-content" id="debug-line_following">
                     <div class="debug-sidebar">
                         <div class="debug-item">
                             <span class="debug-label">Mode:</span>
@@ -819,7 +787,7 @@
                     </div>
                 </div>
 
-                <!-- Week 2: Object Detection Debug -->
+                <!-- Week 4: Object Detection Debug -->
                 <div class="debug-content" id="debug-object_detection">
                     <div class="debug-sidebar">
                         <div class="debug-item">
@@ -851,11 +819,11 @@
                 </div>
 
                 <!-- Week 3: Speed Estimation Debug -->
-                <div class="debug-content" id="debug-speed_estimation">
+                <div class="debug-content active" id="debug-speed_estimation">
                     <div class="debug-sidebar">
                         <div class="speed-display">
                             <div style="font-size: 0.9em; color: #117a8b; margin-bottom: 5px;">Current Speed</div>
-                            <div class="speed-value" id="currentSpeed">0.0 units/s</div>
+                            <div class="speed-value" id="currentSpeed">0.00 m/s</div>
                         </div>
                         
                         <div class="debug-item">
@@ -876,10 +844,10 @@
             
             <!-- Debug Controls - Tab Specific -->
             <div class="control-panel">
-                <h3>🔧 Debug Controls</h3>
+                <h3 id="controlsTitle">🔧 Debug Controls</h3>
                 
                 <!-- Line Following Specific Controls -->
-                <div class="debug-content active" id="controls-line_following">
+                <div class="debug-content" id="controls-line_following">
                     <div class="control-group">
                         <label>Debug Views:</label>
                         <div class="debug-checkbox-group" style="display:flex; flex-direction:column; gap:6px; margin:6px 0;">
@@ -912,10 +880,21 @@
                 </div>
 
                 <!-- Speed Estimation Specific Controls -->
-                <div class="debug-content" id="controls-speed_estimation">
-                    <div style="text-align: center; color: #6c757d; padding: 20px;">
-                        Speed estimation parameters are controlled<br>
-                        in the code and calibration files.
+                <div class="debug-content active" id="controls-speed_estimation">
+                    <div class="control-group">
+                        <label>Optical Flow Drawings</label>
+                        <div class="radio-group" role="radiogroup" aria-label="Optical flow drawings">
+                            <label class="radio-option">
+                                <input type="radio" name="speedFlowOverlay" value="on"
+                                       onchange="setSpeedFlowOverlay(true)" checked>
+                                On
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="speedFlowOverlay" value="off"
+                                       onchange="setSpeedFlowOverlay(false)">
+                                Off
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -940,13 +919,13 @@
                         <span class="feature-label">Line Following:</span>
                         <span class="feature-value" id="lineFollowingStatus">Loading...</span>
                     </div>
-                    <div class="feature-item" id="signDetectionFeature">
-                        <span class="feature-label">Sign Detection:</span>
-                        <span class="feature-value" id="signDetectionStatus">Loading...</span>
-                    </div>
                     <div class="feature-item" id="speedEstimationFeature">
                         <span class="feature-label">Speed Estimation:</span>
                         <span class="feature-value" id="speedEstimationStatus">Loading...</span>
+                    </div>
+                    <div class="feature-item" id="signDetectionFeature">
+                        <span class="feature-label">Sign Detection:</span>
+                        <span class="feature-value" id="signDetectionStatus">Loading...</span>
                     </div>
                 </div>
             </div>
@@ -956,11 +935,11 @@
     <script>
         // Global state
         let isAutonomous = false;
-        let currentDebugMode = 'line_following';
+        let currentDebugMode = 'speed_estimation';
         let featureStates = {
             'line_following': 'Disabled',
-            'sign_detection': 'Disabled',
-            'speed_estimation': 'Disabled'
+            'speed_estimation': 'Disabled',
+            'sign_detection': 'Disabled'
         };
         
         // Initialize page
@@ -969,9 +948,13 @@
             setupKeyboardControls();
             
             // Initialize tab controls visibility
-            document.querySelectorAll('#controls-object_detection, #controls-speed_estimation').forEach(control => {
+            document.querySelectorAll('#controls-line_following, #controls-object_detection, #controls-speed_estimation').forEach(control => {
                 control.classList.remove('active');
             });
+            document.getElementById(`controls-${currentDebugMode}`).classList.add('active');
+            applyMainLayout(currentDebugMode);
+            updateControlsTitle(currentDebugMode);
+            startSpeedPolling();
             
             // Update status and debug data regularly
             setInterval(updateStatus, 2000);
@@ -1001,10 +984,11 @@
             // Update debug title
             const titles = {
                 'line_following': '🔍 Line Following Debug',
-                'object_detection': '🎯 Object Detection Debug', 
-                'speed_estimation': '🚀 Speed Estimation Debug'
+                'speed_estimation': '🚀 Speed Estimation Debug',
+                'object_detection': '🎯 Object Detection Debug'
             };
             document.getElementById('debugTitle').textContent = titles[mode];
+            updateControlsTitle(mode);
             
             // Set debug mode on backend
             fetch(`/set_debug_mode?mode=${mode}`)
@@ -1015,15 +999,16 @@
                     }
                 });
             
-            // Show/hide appropriate controls based on mode
+            // Show/hide mode-specific controls
             const videoContainer = document.querySelector('.video-container');
             const autonomousControls = document.getElementById('autonomousControls');
             const speedControls = document.getElementById('speedControls');
+            applyMainLayout(mode);
             
             if (mode === 'speed_estimation') {
-                // Speed estimation mode: hide video, hide autonomous controls, show speed controls
-                videoContainer.style.display = 'none';
-                autonomousControls.style.display = 'none';
+                // Speed estimation mode: keep video and autonomous controls visible, add speed controls
+                videoContainer.style.display = 'block';
+                autonomousControls.style.display = 'block';
                 speedControls.style.display = 'block';
                 startSpeedPolling();
             } else {
@@ -1035,11 +1020,47 @@
             }
         }
 
+        function applyMainLayout(mode) {
+            const mainContent = document.querySelector('.main-content');
+            const defaultOrder = [
+                'videoSection',
+                'consoleContainer',
+                'autonomousControls',
+                'cameraControls',
+                'setupHint',
+                'manualControls',
+                'speedControls'
+            ];
+            const speedOrder = [
+                'videoSection',
+                'speedControls',
+                'manualControls',
+                'cameraControls',
+                'consoleContainer',
+                'autonomousControls',
+                'setupHint'
+            ];
+            const order = mode === 'speed_estimation' ? speedOrder : defaultOrder;
+
+            order.forEach(id => mainContent.appendChild(document.getElementById(id)));
+            document.getElementById('setupHint').style.display =
+                mode === 'speed_estimation' ? 'none' : 'block';
+        }
+
+        function updateControlsTitle(mode) {
+            const titles = {
+                'line_following': '🔧 Debug Controls',
+                'speed_estimation': 'Optical Flow Display',
+                'object_detection': '🔧 Debug Controls'
+            };
+            document.getElementById('controlsTitle').textContent = titles[mode];
+        }
+
         function isTabEnabled(mode) {
             const modeToFeature = {
                 'line_following': 'line_following',
-                'object_detection': 'sign_detection',
-                'speed_estimation': 'speed_estimation'
+                'speed_estimation': 'speed_estimation',
+                'object_detection': 'sign_detection'
             };
             
             return featureStates[modeToFeature[mode]] === 'Active';
@@ -1048,8 +1069,8 @@
         function updateTabAvailability() {
             const modeToFeature = {
                 'line_following': 'line_following',
-                'object_detection': 'sign_detection',
-                'speed_estimation': 'speed_estimation'
+                'speed_estimation': 'speed_estimation',
+                'object_detection': 'sign_detection'
             };
 
             const activeModes = [];
@@ -1187,7 +1208,7 @@
                     document.getElementById('debugSteering').textContent = (data.steering_angle || 0).toFixed(1) + '°';
                     document.getElementById('debugLines').textContent = data.lines_detected || 0;
 
-                    // Update Week 2 debug data if available
+                    // Update object-detection debug data if available
                     if (data.stop_status) {
                         document.getElementById('stopStatus').textContent = data.stop_status;
                     }
@@ -1205,24 +1226,20 @@
                             `${depthFps.toFixed(1)} fps (${data.depth_inference_ms.toFixed(0)}ms)`;
                     }
 
-                    // Update Week 3 debug data if available
-                    if (data.current_speed !== undefined) {
-                        document.getElementById('currentSpeed').textContent = data.current_speed.toFixed(1) + ' units/s';
-                    }
                 })
                 .catch(error => {
                     console.log('Debug data update failed:', error);
                 });
 
-            // Get Week 2 specific performance data
+            // Get object-detection performance data
             if (currentDebugMode === 'object_detection') {
-                fetch('/get_week2_performance')
+                fetch('/get_object_detection_performance')
                     .then(response => response.json())
                     .then(data => {
                         updateDetectionsList(data.cached_detections || 0);
                     })
                     .catch(error => {
-                        console.log('Week 2 performance data failed:', error);
+                        console.log('Object detection performance data failed:', error);
                     });
             }
         }
@@ -1351,6 +1368,23 @@
                     console.error('Frame rate error:', error);
                 });
         }
+
+        function setSpeedFlowOverlay(enabled) {
+            fetch(`/set_speed_flow_overlay?enabled=${enabled}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message);
+                    }
+                    const value = data.enabled ? 'on' : 'off';
+                    document.querySelector(
+                        `input[name="speedFlowOverlay"][value="${value}"]`
+                    ).checked = true;
+                })
+                .catch(error => {
+                    console.error('Optical flow display error:', error);
+                });
+        }
         
         // =================================================================
         // STATUS UPDATES
@@ -1377,12 +1411,12 @@
                 .then(data => {
                     // Your existing code
                     featureStates.line_following = data.features.line_following;
-                    featureStates.sign_detection = data.features.sign_detection;
                     featureStates.speed_estimation = data.features.speed_estimation;
+                    featureStates.sign_detection = data.features.sign_detection;
 
                     updateFeatureStatus('lineFollowing', data.features.line_following);
-                    updateFeatureStatus('signDetection', data.features.sign_detection);
                     updateFeatureStatus('speedEstimation', data.features.speed_estimation);
+                    updateFeatureStatus('signDetection', data.features.sign_detection);
                     
                     // Update tab availability
                     updateTabAvailability();
@@ -1391,6 +1425,13 @@
                     const autonomousButton = document.getElementById('start-autonomous-btn');
                     if (autonomousButton && data.button_text) {
                         autonomousButton.textContent = data.button_text;
+                    }
+
+                    if (data.speed_flow_overlay_enabled !== undefined) {
+                        const value = data.speed_flow_overlay_enabled ? 'on' : 'off';
+                        document.querySelector(
+                            `input[name="speedFlowOverlay"][value="${value}"]`
+                        ).checked = true;
                     }
                 })
                 .catch(error => {
@@ -1593,47 +1634,20 @@
                 });
         }
 
-        function startSpeedPolling() {
-            speedPollingInterval = setInterval(() => {
-                fetch('/process_speed_frames')  // New lightweight endpoint
-                    .then(response => response.json())
-                    .then(data => updateSpeedDisplay(data));
-            }, 200);
-        }
-
         function updateSpeedDisplay(speedData) {
-            const speedValue = document.getElementById('speedValue');
-            const speedStatus = document.getElementById('speedStatus');
-            const rawSpeed = document.getElementById('rawSpeed');
-            const smoothedSpeed = document.getElementById('smoothedSpeed');
+            const currentSpeed = document.getElementById('currentSpeed');
+            const flowMagnitude = document.getElementById('flowMagnitude');
+            const featuresTracked = document.getElementById('featuresTracked');
+            const calibrationStatus = document.getElementById('calibrationStatus');
             
-            if (speedValue && speedData) {
+            if (speedData) {
                 const speed = speedData.smoothed_speed || 0;
                 
                 // Update display values
-                speedValue.textContent = speed.toFixed(2);
-                rawSpeed.textContent = (speedData.current_speed || 0).toFixed(3);
-                smoothedSpeed.textContent = speed.toFixed(3);
-                
-                // Color coding and status
-                let colorClass, status;
-                if (speed > 0.4) {
-                    colorClass = 'speed-fast';
-                    status = 'FAST';
-                } else if (speed > 0.15) {
-                    colorClass = 'speed-medium';
-                    status = 'MEDIUM';
-                } else if (speed > 0.05) {
-                    colorClass = 'speed-slow';
-                    status = 'SLOW';
-                } else {
-                    colorClass = 'speed-stopped';
-                    status = 'STOPPED';
-                }
-                
-                speedValue.className = colorClass;
-                speedStatus.className = colorClass;
-                speedStatus.textContent = status;
+                currentSpeed.textContent = speed.toFixed(2) + ' m/s';
+                flowMagnitude.textContent = (speedData.flow_magnitude || 0).toFixed(2);
+                featuresTracked.textContent = speedData.features_tracked || 0;
+                calibrationStatus.textContent = speedData.calibrated ? 'Loaded' : 'Not loaded';
             }
         }
 

@@ -1,0 +1,13 @@
+{
+    "description": "Speed calibration parameters for optical flow to real speed conversion",
+    "robot_config": "PiCar-X default setup",
+    "slope": 0.156,
+    "intercept": -0.8,
+    "r_squared": 0.0,
+    "n_points": 0,
+    "stop_distance_m": 0.2,
+    "units": "m/s",
+    "calibration_notes": [
+        "Linear regression from optical flow magnitude to robot speed"
+    ]
+}

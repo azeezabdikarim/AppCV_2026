@@ -6,21 +6,21 @@ Week 1 uses the separate first-drive gesture app.
 """
 
 FEATURES_ENABLED = {
-    "line_following": True,     # Week 2
-    "sign_detection": False,    # Week 3
-    "speed_estimation": False,  # Week 4
+    "line_following": False,    # Week 2
+    "speed_estimation": True,   # Week 3
+    "sign_detection": False,    # Week 4
 }
 
 FEATURE_DESCRIPTIONS = {
     "line_following": "Computer vision + PID control for following lines",
-    "sign_detection": "ONNX model integration for detecting stop signs",
     "speed_estimation": "Optical flow analysis for estimating robot speed",
+    "sign_detection": "ONNX model integration for detecting stop signs",
 }
 
 REQUIRED_METHODS = {
     "line_following": ["compute_steering_angle"],
-    "sign_detection": ["detect_signs", "should_stop"],
     "speed_estimation": ["estimate_speed"],
+    "sign_detection": ["detect_signs", "should_stop"],
 }
 
 

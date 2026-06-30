@@ -241,6 +241,23 @@ def set_frame_rate():
             'success': False,
             'message': f'Error setting frame rate: {str(e)}'
         }), 500
+
+@app.route('/set_speed_flow_overlay')
+def set_speed_flow_overlay():
+    """Toggle optical-flow drawings in speed-estimation mode."""
+    enabled_value = request.args.get('enabled', '').lower()
+    if enabled_value not in {'true', 'false'}:
+        return jsonify({
+            'success': False,
+            'message': 'Enabled parameter must be true or false'
+        }), 400
+
+    enabled = enabled_value == 'true'
+    robot.set_speed_flow_overlay(enabled)
+    return jsonify({
+        'success': True,
+        'enabled': robot.speed_flow_overlay_enabled
+    })
     
 @app.route('/set_debug_mode')
 def set_debug_mode():
@@ -260,9 +277,9 @@ def set_debug_mode():
             'message': f'Error setting debug mode: {str(e)}'
         }), 500
 
-@app.route('/get_week2_performance')
-def get_week2_performance():
-    """Get Week 2 specific performance metrics"""
+@app.route('/get_object_detection_performance')
+def get_object_detection_performance():
+    """Get object-detection performance metrics."""
     try:
         return jsonify(robot.get_debug_mode_status())
     except Exception as e:
@@ -416,7 +433,7 @@ def speed_test_control():
     """Control speed testing with discrete power levels and auto-stop"""
     try:
         action = request.args.get('action', 'stop')  # start, stop, emergency_stop
-        speed = request.args.get('speed', type=int, default=30)
+        speed = request.args.get('speed', type=int, default=10)
         
         if robot.autonomous_mode:
             return jsonify({
@@ -426,10 +443,10 @@ def speed_test_control():
         
         if action == 'start':
             # Validate speed levels
-            if speed not in [30, 50, 70]:
+            if speed not in [10, 20, 40]:
                 return jsonify({
                     'success': False,
-                    'message': f'Invalid speed level: {speed}. Use 30, 50, or 70.'
+                    'message': f'Invalid speed level: {speed}. Use 10, 20, or 40.'
                 })
         
         success, message = robot.control_speed_test(action, speed)
