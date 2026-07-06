@@ -14,7 +14,7 @@ class SignDetector(SignDetectorBase):
             nms_iou_threshold=0.45,
         )
         self.stop_classes = {"Stop_Sign", "Stahp"}
-        self.stop_area_ratio = 0.06
+        self.stop_area_ratio = 0.05
 
     def detect_signs(self, camera_frame):
         raw_output, transform = self.run_model(camera_frame)
@@ -60,4 +60,3 @@ class SignDetector(SignDetectorBase):
             and detection["area_ratio"] >= self.stop_area_ratio
             for detection in detected_signs
         )
-

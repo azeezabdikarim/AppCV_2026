@@ -18,7 +18,7 @@ class SignDetector(SignDetectorBase):
 
         # Student-tunable decision settings.
         self.stop_classes = {"Stop_Sign", "Stahp"}
-        self.stop_area_ratio = 0.06
+        self.stop_area_ratio = 0.05
 
     def detect_signs(self, camera_frame):
         """Run ONNX inference and return filtered detection dictionaries."""
@@ -60,4 +60,3 @@ class SignDetector(SignDetectorBase):
         #   - has a class_name in self.stop_classes, and
         #   - has area_ratio >= self.stop_area_ratio.
         return False
-
