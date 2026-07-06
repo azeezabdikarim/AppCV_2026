@@ -7,8 +7,8 @@ Week 1 uses the separate first-drive gesture app.
 
 FEATURES_ENABLED = {
     "line_following": False,    # Week 2
-    "speed_estimation": True,   # Week 3
-    "sign_detection": False,    # Week 4
+    "speed_estimation": False,  # Week 3
+    "sign_detection": True,     # Week 4 - current exercise
 }
 
 FEATURE_DESCRIPTIONS = {

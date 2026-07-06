@@ -80,7 +80,7 @@ def video_feed():
 
 @app.route('/start_autonomous')
 def start_autonomous():
-    """Start autonomous line following mode"""
+    """Start the currently enabled autonomous exercise."""
     success, message = robot.start_autonomous_mode()
     global last_command
     last_command = "autonomous started" if success else "autonomous failed"

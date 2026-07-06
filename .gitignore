@@ -16,6 +16,8 @@ Lab_3/src/colmap_dense_pipeline_artifacts.ipynb
 Lab_3/src/investigate_reconstruction copy.ipynb
 Lab_5/challenges_solutions
 Lab_5/familiarization/NOTEBOOK_BRIEF.md
-Car_lab/week4*
+Car_lab/week4_object_detection/models/*.onnx
+!Car_lab/week4_object_detection/models/.gitkeep
 Car_lab/week1_first_drive_gesture_solution/
 Car_lab/week3_speed_estimation/speed_estimator_solution.py
+Car_lab/week5*

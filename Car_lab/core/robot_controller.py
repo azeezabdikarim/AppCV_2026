@@ -14,22 +14,13 @@ from utils.movement_controls import MovementController
 from utils.debug_visualizer import DebugVisualizer
 from utils.utils import TimingUtils, CacheManager, StatusManager
 from utils.console_logger import console_logger
+from feature_config import FEATURES_ENABLED
 
 try:
     from picarx import Picarx
 except ImportError:
     print("WARNING: PicarX not available - running in simulation mode")
     Picarx = None
-
-# =============================================================================
-# EXPLICIT FEATURE CONTROL
-# Students enable features when they're ready
-# =============================================================================
-FEATURES_ENABLED = {
-    'line_following': False,   # Week 2 - Temporarily disabled for the Week 3 lab
-    'speed_estimation': True,  # Week 3 - Current lab
-    'sign_detection': False    # Week 4 - Student enables when implemented
-}
 
 class RobotController:
     def __init__(self):
@@ -39,9 +30,8 @@ class RobotController:
             # STUDENT TUNABLE PARAMETERS - Modify these as needed
             # =================================================================
             
-            # Week 4: Object Detection & Depth Analysis Performance
+            # Week 4: Object-detection performance and stopping behaviour
             self.detection_interval = 0.5    # Run object detection every 0.5 seconds
-            self.depth_interval = 1.0        # Run depth analysis every 1.0 seconds
             self.sign_stop_duration = 2.0    # Seconds to stop for detected signs
             self.stop_cooldown_duration = 1.0 # Cooldown after movement resumes
             
@@ -66,7 +56,7 @@ class RobotController:
             self.debug_visualizer = DebugVisualizer()
             
             # Debug mode system
-            self.debug_mode = "speed_estimation"  # Default to Week 3
+            self.debug_mode = "object_detection"  # Week 4 default
             self.available_modes = ["line_following", "speed_estimation", "object_detection"]
             
             # Autonomous mode variables
@@ -105,6 +95,11 @@ class RobotController:
             
             # Load enabled features
             self._load_enabled_features()
+
+            # Week 4 observes signs in front of the car, not the floor.
+            if FEATURES_ENABLED['sign_detection']:
+                self.movement_controller.set_camera_pan(0)
+                self.movement_controller.set_camera_tilt(0)
             
             print("✅ Robot controller initialized successfully")
         except Exception as e:
@@ -186,8 +181,13 @@ class RobotController:
         self.autonomous_mode = True
         self.frame_counter = 0
         
-        # Determine mode based on line following availability
-        if FEATURES_ENABLED['line_following'] and self.line_follower:
+        # Describe the active autonomous exercise.
+        if FEATURES_ENABLED['sign_detection'] and self.sign_detector:
+            self.debug_data['mode'] = 'Sign-Stop Test'
+            self.debug_mode = 'object_detection'
+            console_logger.info("✅ Sign-stop test started at low speed")
+            return True, "Sign-stop test started"
+        elif FEATURES_ENABLED['line_following'] and self.line_follower:
             self.debug_data['mode'] = 'Line Following'
             console_logger.info("✅ Autonomous line following started")
             return True, "Line following started"
@@ -305,8 +305,10 @@ class RobotController:
     def _run_detection_with_timing(self, frame):
         """Run object detection with timing and caching (single inference execution)"""
         return self.timing_utils.run_detection_with_timing(
-            frame, self.sign_detector, self.detection_interval, 
-            self.depth_interval, self.cache_manager
+            frame,
+            self.sign_detector,
+            self.detection_interval,
+            self.cache_manager,
         )
     
     # =============================================================================
@@ -344,12 +346,9 @@ class RobotController:
             'debug_mode': self.debug_mode,
             'available_modes': self.get_available_debug_modes(),
             'detection_fps': 1.0 / self.detection_interval if self.detection_interval > 0 else 0,
-            'depth_fps': 1.0 / self.depth_interval if self.depth_interval > 0 else 0,
             'last_detection_age': current_time - self.timing_utils.last_detection_time,
-            'last_depth_age': current_time - self.timing_utils.last_depth_time,
             'cached_detections': len(self.cache_manager.cached_detections),
             'last_detection_inference_ms': self.timing_utils.last_detection_inference_ms,
-            'last_depth_inference_ms': self.timing_utils.last_depth_inference_ms
         }
     
     # =============================================================================
@@ -435,10 +434,23 @@ class RobotController:
         
         # Add Week 4 specific data when in object detection mode
         if self.debug_mode == "object_detection":
+            largest_area_ratio = max(
+                (
+                    detection.get('area_ratio', 0.0)
+                    for detection in self.cache_manager.cached_detections
+                ),
+                default=0.0,
+            )
             data.update({
                 'detections_count': len(self.cache_manager.cached_detections),
                 'detection_inference_ms': self.timing_utils.last_detection_inference_ms,
-                'depth_inference_ms': self.timing_utils.last_depth_inference_ms,
+                'detection_fps': (
+                    1.0 / self.detection_interval
+                    if self.detection_interval > 0
+                    else 0.0
+                ),
+                'largest_area_ratio': largest_area_ratio,
+                'stop_area_ratio': getattr(self.sign_detector, 'stop_area_ratio', 0.0),
                 'stop_status': self.status_manager.get_stop_status(time.time(), self.sign_stop_until)
             })
         
@@ -552,7 +564,9 @@ class RobotController:
     
     def get_autonomous_button_text(self):
         """Get the appropriate button text for autonomous mode"""
-        if FEATURES_ENABLED['line_following'] and self.line_follower:
+        if FEATURES_ENABLED['sign_detection'] and self.sign_detector:
+            return "Start Sign-Stop Test"
+        elif FEATURES_ENABLED['line_following'] and self.line_follower:
             return "Start Line Following"
         else:
             return "Start Straight Movement"

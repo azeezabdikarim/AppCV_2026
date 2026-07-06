@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lab 6 ONNX Detector</title>
+    <style>
+        body { margin: 0; padding: 24px; font-family: system-ui, sans-serif; background: #eef1f4; color: #18202a; }
+        main { max-width: 960px; margin: auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 20px #0002; }
+        h1 { margin-top: 0; }
+        img { display: block; width: 100%; max-width: 800px; margin: 20px auto; border-radius: 8px; background: #111; }
+        .status { display: flex; gap: 24px; flex-wrap: wrap; padding: 12px 16px; background: #f4f7fa; border-radius: 8px; }
+        code { background: #edf0f3; padding: 2px 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Lab 6: ONNX Sign Detector</h1>
+    <div class="status">
+        <span><strong>Input:</strong> <code>{{ input_shape }}</code></span>
+        <span><strong>Confidence:</strong> <code>{{ confidence }}</code></span>
+        <span><strong>Motors:</strong> disabled</span>
+    </div>
+    <img src="{{ url_for('video_feed') }}" alt="Live camera detections">
+    <p>Labels show the predicted class, confidence, and bounding-box percentage of the camera frame.</p>
+</main>
+</body>
+</html>
+

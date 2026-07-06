@@ -64,6 +64,15 @@ class LineFollower(LineFollowerBase):
         left = int(width * self.roi_left)
         right = int(width * self.roi_right)
         roi = frame[top:bottom, left:right]
+
+        # add this import to the top 
+        # from utils.console_logger import console_logger
+
+        # then you can write something like 
+
+        # console_logger.info(
+        #      f"ROI bounds: top={top}, 
+        #       bottom={bottom}, left={left}, right={right}")
         return roi, (top, bottom, left, right)
 
     def convert_to_grayscale(self, roi):

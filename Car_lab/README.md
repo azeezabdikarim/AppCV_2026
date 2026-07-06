@@ -7,7 +7,8 @@ This directory contains the 2026 PiCar-X lab code.
 - `week1_first_drive_gesture`: first-drive web UI and MediaPipe gesture steering.
 - `week2_line_following`: course Lab 9, line following with classical CV and PID.
 - `week3_speed_estimation`: course Lab 10, optical-flow speed estimation.
-- `week4_object_detection`: course Lab 11, future model fine-tuning/sign-detection work.
+- `week4_object_detection`: deploy the custom ONNX detector produced in Lab 6 and trigger stopping from bounding-box area.
+- `week5_depth_estimation`: downstream monocular-depth work, separated from the Week 4 area proxy.
 - `core`: full multi-week web UI used after the Week 1 introduction.
 
 ## Core stream/control architecture
@@ -89,3 +90,15 @@ cd ~/AppCV_2026/Car_lab/core
 conda activate app_cv
 python run.py
 ```
+
+## Lab 6 and Week 4 model handoff
+
+Course Lab 6 captures and annotates sign images, fine-tunes YOLOv8n in Colab,
+and exports `best.onnx`. The resulting model is copied to:
+
+```text
+Car_lab/week4_object_detection/models/best.onnx
+```
+
+Week 4 deliberately uses only detection confidence and bounding-box area.
+Monocular depth estimation begins in Week 5.

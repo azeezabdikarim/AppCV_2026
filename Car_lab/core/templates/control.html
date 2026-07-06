@@ -647,10 +647,10 @@
                 <button class="debug-tab" id="tab-line_following" onclick="switchDebugTab('line_following')">
                     📍 Line Following
                 </button>
-                <button class="debug-tab active" id="tab-speed_estimation" onclick="switchDebugTab('speed_estimation')">
+                <button class="debug-tab" id="tab-speed_estimation" onclick="switchDebugTab('speed_estimation')">
                     🚀 Speed Estimation
                 </button>
-                <button class="debug-tab" id="tab-object_detection" onclick="switchDebugTab('object_detection')">
+                <button class="debug-tab active" id="tab-object_detection" onclick="switchDebugTab('object_detection')">
                     🎯 Object Detection
                 </button>
             </div>
@@ -668,9 +668,9 @@
 
             <!-- Autonomous Controls (Line Following & Object Detection) -->
             <div class="autonomous-controls" id="autonomousControls">
-                <h3>🤖 Autonomous Mode</h3>
+                <h3>🤖 Week 4 Sign-Stop Test</h3>
                 <button class="autonomous-btn start-autonomous" id="start-autonomous-btn" onclick="startAutonomous()">
-                    🚀 Start Line Following
+                    🚀 Start Sign-Stop Test
                 </button>
                 <button class="autonomous-btn stop-autonomous" onclick="stopAutonomous()">
                     ⏹️ Stop Autonomous Mode
@@ -699,13 +699,13 @@
                 <div class="angle-control">
                     <label>Tilt:</label>
                     <input type="range" class="angle-slider" id="cameraTilt" 
-                           min="-90" max="90" value="-30" onchange="setCameraTilt(this.value)">
-                    <span class="angle-value" id="tiltValue">-30°</span>
+                           min="-90" max="90" value="0" onchange="setCameraTilt(this.value)">
+                    <span class="angle-value" id="tiltValue">0°</span>
                 </div>
             </div>
             
             <div class="keyboard-hint" id="setupHint">
-                💡 <strong>Setup:</strong> Position camera using controls above, then use speed tests or WASD controls
+                💡 <strong>Week 4:</strong> Point the camera forward and verify detections with autonomous movement off. Start the low-speed test only after confidence and area values look correct.
             </div>
             
             <div class="controls-grid" id="manualControls">
@@ -733,7 +733,7 @@
             </div>
 
             <!-- Speed Estimation Controls (only visible in speed estimation mode) -->
-            <div class="speed-controls" id="speedControls" style="display: block;">
+            <div class="speed-controls" id="speedControls" style="display: none;">
                 <h3>🚀 Speed Estimation Testing</h3>
 
                 <!-- Speed Test Buttons -->
@@ -763,7 +763,7 @@
         <div class="sidebar">
             <!-- Dynamic Debug Information Sidebar -->
             <div class="control-panel">
-                <h3 id="debugTitle">🚀 Speed Estimation Debug</h3>
+                <h3 id="debugTitle">🎯 Object Detection Debug</h3>
                 
                 <!-- Line Following Debug -->
                 <div class="debug-content" id="debug-line_following">
@@ -788,7 +788,7 @@
                 </div>
 
                 <!-- Week 4: Object Detection Debug -->
-                <div class="debug-content" id="debug-object_detection">
+                <div class="debug-content active" id="debug-object_detection">
                     <div class="debug-sidebar">
                         <div class="debug-item">
                             <span class="debug-label">Stop Status:</span>
@@ -798,15 +798,19 @@
                             <span class="debug-label">Detections:</span>
                             <span class="debug-value" id="detectionsCount">0</span>
                         </div>
+                        <div class="debug-item">
+                            <span class="debug-label">Largest Area:</span>
+                            <span class="debug-value" id="largestDetectionArea">0.0%</span>
+                        </div>
+                        <div class="debug-item">
+                            <span class="debug-label">Stop Threshold:</span>
+                            <span class="debug-value" id="stopAreaThreshold">0.0%</span>
+                        </div>
                         
                         <div class="performance-grid">
                             <div class="performance-item">
                                 <div class="performance-label">Detection</div>
                                 <div class="performance-value" id="detectionPerf">0 fps (0ms)</div>
-                            </div>
-                            <div class="performance-item">
-                                <div class="performance-label">Depth</div>
-                                <div class="performance-value" id="depthPerf">0 fps (0ms)</div>
                             </div>
                         </div>
 
@@ -819,7 +823,7 @@
                 </div>
 
                 <!-- Week 3: Speed Estimation Debug -->
-                <div class="debug-content active" id="debug-speed_estimation">
+                <div class="debug-content" id="debug-speed_estimation">
                     <div class="debug-sidebar">
                         <div class="speed-display">
                             <div style="font-size: 0.9em; color: #117a8b; margin-bottom: 5px;">Current Speed</div>
@@ -871,16 +875,17 @@
                     </div>
                 </div>
                 <!-- Object Detection Specific Controls -->
-                <div class="debug-content" id="controls-object_detection">
+                <div class="debug-content active" id="controls-object_detection">
                     <div style="text-align: center; color: #6c757d; padding: 20px;">
-                        Object detection performance is controlled<br>
-                        by tunable parameters in the code:<br>
-                        <code>detection_interval</code> and <code>depth_interval</code>
+                        Tune Week 4 in <code>sign_detector.py</code>:<br>
+                        <code>confidence_threshold</code>,<br>
+                        <code>stop_classes</code>, and<br>
+                        <code>stop_area_ratio</code>.
                     </div>
                 </div>
 
                 <!-- Speed Estimation Specific Controls -->
-                <div class="debug-content active" id="controls-speed_estimation">
+                <div class="debug-content" id="controls-speed_estimation">
                     <div class="control-group">
                         <label>Optical Flow Drawings</label>
                         <div class="radio-group" role="radiogroup" aria-label="Optical flow drawings">
@@ -935,7 +940,7 @@
     <script>
         // Global state
         let isAutonomous = false;
-        let currentDebugMode = 'speed_estimation';
+        let currentDebugMode = 'object_detection';
         let featureStates = {
             'line_following': 'Disabled',
             'speed_estimation': 'Disabled',
@@ -954,7 +959,9 @@
             document.getElementById(`controls-${currentDebugMode}`).classList.add('active');
             applyMainLayout(currentDebugMode);
             updateControlsTitle(currentDebugMode);
-            startSpeedPolling();
+            if (currentDebugMode === 'speed_estimation') {
+                startSpeedPolling();
+            }
             
             // Update status and debug data regularly
             setInterval(updateStatus, 2000);
@@ -1216,14 +1223,17 @@
                         document.getElementById('detectionsCount').textContent = data.detections_count;
                     }
                     if (data.detection_inference_ms !== undefined) {
-                        const detectionFps = currentDebugMode === 'object_detection' ? getDetectionFps() : 0;
+                        const detectionFps = data.detection_fps || 0;
                         document.getElementById('detectionPerf').textContent = 
                             `${detectionFps.toFixed(1)} fps (${data.detection_inference_ms.toFixed(0)}ms)`;
                     }
-                    if (data.depth_inference_ms !== undefined) {
-                        const depthFps = currentDebugMode === 'object_detection' ? getDepthFps() : 0;
-                        document.getElementById('depthPerf').textContent = 
-                            `${depthFps.toFixed(1)} fps (${data.depth_inference_ms.toFixed(0)}ms)`;
+                    if (data.largest_area_ratio !== undefined) {
+                        document.getElementById('largestDetectionArea').textContent =
+                            `${(100 * data.largest_area_ratio).toFixed(1)}%`;
+                    }
+                    if (data.stop_area_ratio !== undefined) {
+                        document.getElementById('stopAreaThreshold').textContent =
+                            `${(100 * data.stop_area_ratio).toFixed(1)}%`;
                     }
 
                 })
@@ -1242,16 +1252,6 @@
                         console.log('Object detection performance data failed:', error);
                     });
             }
-        }
-
-        function getDetectionFps() {
-            // This would come from the robot's detection interval setting
-            return 2.0; // Placeholder - would be calculated from actual intervals
-        }
-
-        function getDepthFps() {
-            // This would come from the robot's depth interval setting  
-            return 1.0; // Placeholder - would be calculated from actual intervals
         }
 
         function updateDetectionsList(count) {

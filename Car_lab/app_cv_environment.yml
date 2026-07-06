@@ -143,6 +143,7 @@ dependencies:
   - mpg123=1.32.9
   - ncurses=6.6
   - numpy=2.4.6
+  - onnxruntime=1.26.0
   - opencv=4.13.0
   - openexr=3.4.12
   - openh264=2.6.0

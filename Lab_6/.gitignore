@@ -1,0 +1,6 @@
+captured_images/
+models/*.onnx
+!models/.gitkeep
+__pycache__/
+*.pyc
+
