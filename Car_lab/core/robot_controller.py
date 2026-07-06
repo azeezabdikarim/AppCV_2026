@@ -32,8 +32,6 @@ class RobotController:
             
             # Week 4: Object-detection performance and stopping behaviour
             self.detection_interval = 0.5    # Run object detection every 0.5 seconds
-            self.sign_stop_duration = 2.0    # Seconds to stop for detected signs
-            self.stop_cooldown_duration = 1.0 # Cooldown after movement resumes
             
             # Debug and visualization settings
             self.debug_level = 0             # 0-4, higher = more debug info
@@ -180,6 +178,8 @@ class RobotController:
             
         self.autonomous_mode = True
         self.frame_counter = 0
+        self.sign_stop_until = None
+        self.status_manager.reset()
         
         # Describe the active autonomous exercise.
         if FEATURES_ENABLED['sign_detection'] and self.sign_detector:
@@ -207,6 +207,8 @@ class RobotController:
     def stop_autonomous_mode(self):
         """Stop autonomous mode and return to manual control"""
         self.autonomous_mode = False
+        self.sign_stop_until = None
+        self.status_manager.reset()
         self.debug_data['mode'] = 'Manual'
         self.movement_controller.emergency_stop()
         print("Autonomous mode stopped")
@@ -225,25 +227,34 @@ class RobotController:
             'mode': 'Autonomous' if self.autonomous_mode else 'Manual'
         }
         
-        # Check if currently stopped for sign detection and cooldown logic
+        # A Week 4 sign stop is latched until Start is pressed again.
         current_time = time.time()
         stopped_for_sign = (self.sign_stop_until is not None and current_time < self.sign_stop_until)
-        in_cooldown = self.status_manager.is_in_cooldown(current_time)
         
         # Week 4: Sign Detection (with timing and caching)
-        if self.sign_detector and FEATURES_ENABLED['sign_detection'] and not stopped_for_sign and not in_cooldown:
+        if self.sign_detector and FEATURES_ENABLED['sign_detection'] and not stopped_for_sign:
             detected_signs = self._run_detection_with_timing(frame)
-            if self.sign_detector.should_stop(detected_signs, frame):
-                self.sign_stop_until = current_time + self.sign_stop_duration
-                self.status_manager.set_recently_stopped(True)
+            if self.autonomous_mode and self.sign_detector.should_stop(detected_signs, frame):
+                triggering_signs = [
+                    detection
+                    for detection in detected_signs
+                    if detection['class_name'] in self.sign_detector.stop_classes
+                    and detection['area_ratio'] >= self.sign_detector.stop_area_ratio
+                ]
+                trigger = max(
+                    triggering_signs,
+                    key=lambda detection: detection['area_ratio'],
+                )
+                self.sign_stop_until = float('inf')
                 stopped_for_sign = True
-                self.movement_controller.stop() 
-                console_logger.info("Stopping for detected sign")
-        
-        # Anti-infinite-stop: Reset cooldown when robot starts moving again
-        if self.status_manager.recently_stopped_for_sign and not stopped_for_sign and self.autonomous_mode:
-            self.status_manager.start_cooldown(current_time, self.stop_cooldown_duration)
-            console_logger.info("Stop cooldown activated")
+                self.autonomous_mode = False
+                self.debug_data['mode'] = 'Stopped for Sign'
+                self.movement_controller.emergency_stop()
+                console_logger.stop(
+                    f"Stopped for {trigger['class_name']}: "
+                    f"area={100 * trigger['area_ratio']:.1f}% "
+                    f">= {100 * self.sign_detector.stop_area_ratio:.1f}%"
+                )
         
         # Week 3: Speed Estimation
         if self.speed_estimator and FEATURES_ENABLED['speed_estimation']:
@@ -286,7 +297,12 @@ class RobotController:
         # Route debug visualization based on mode
         if self.debug_mode == "object_detection":
             display_frame = self.debug_visualizer.create_object_detection_debug_frame(
-                display_frame, self.cache_manager, self.timing_utils, self.status_manager, self.sign_detector
+                display_frame,
+                self.cache_manager,
+                self.timing_utils,
+                self.status_manager,
+                self.sign_detector,
+                self.status_manager.get_stop_status(time.time(), self.sign_stop_until),
             )
         elif self.debug_mode == "speed_estimation":
             flow_vectors = []

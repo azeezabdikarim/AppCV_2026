@@ -15,6 +15,7 @@ class DebugVisualizer:
         timing_utils,
         status_manager,
         sign_detector,
+        stop_status=None,
     ):
         """Draw Week 4 detection confidence and box-area decisions."""
         output = original_frame.copy()
@@ -22,7 +23,7 @@ class DebugVisualizer:
         if detections:
             output = self._draw_detection_overlay(output, detections, sign_detector)
 
-        status = status_manager.get_current_status(time.time())
+        status = stop_status or status_manager.get_current_status(time.time())
         interval = getattr(timing_utils, "detection_interval", 0.5)
         scheduled_hz = 1.0 / interval if interval > 0 else 0.0
         threshold = getattr(sign_detector, "stop_area_ratio", 0.0)

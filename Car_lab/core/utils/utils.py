@@ -53,6 +53,11 @@ class StatusManager:
     def set_recently_stopped(self, value):
         """Set the recently stopped flag"""
         self.recently_stopped_for_sign = value
+
+    def reset(self):
+        """Clear sign-stop and cooldown state before a new run."""
+        self.recently_stopped_for_sign = False
+        self.stop_cooldown_until = None
     
     def start_cooldown(self, current_time, cooldown_duration):
         """Start the stop cooldown period"""

@@ -17,7 +17,8 @@ class SignDetector(SignDetectorBase):
         )
 
         # Student-tunable decision settings.
-        self.stop_classes = {"Stop_Sign", "Stahp"}
+        # Week 4 stops for any of the four custom signs.
+        self.stop_classes = set(self.class_names)
         self.stop_area_ratio = 0.05
 
     def detect_signs(self, camera_frame):
