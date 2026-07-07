@@ -21,3 +21,4 @@ Car_lab/week4_object_detection/models/*.onnx
 Car_lab/week1_first_drive_gesture_solution/
 Car_lab/week3_speed_estimation/speed_estimator_solution.py
 Car_lab/week5*
+Car_lab/week4_object_detection/sign_detector_solution.py
