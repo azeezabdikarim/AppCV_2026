@@ -4,7 +4,7 @@ Lab 6 produces the model used later in `Car_lab/week4_object_detection`.
 
 The workflow is:
 
-1. capture training and validation images with a PiCar-X camera;
+1. capture one image dataset with a PiCar-X camera;
 2. annotate the images in CVAT;
 3. export an **Ultralytics YOLO Detection 1.0** dataset;
 4. fine-tune `yolov8n.pt` in Google Colab;
@@ -27,31 +27,25 @@ conda activate app_cv
 cd ~/AppCV_2026/Lab_6
 ```
 
-Collect the training and validation sessions separately:
+Capture one varied dataset for annotation:
 
 ```bash
 python scripts/capture_training_images.py \
-  --session train --num-images 60 --delay 0.4
-
-python scripts/capture_training_images.py \
-  --session val --num-images 20 --delay 0.6
+  --num-images 80 --delay 0.5
 ```
 
 The images are saved under:
 
 ```text
 captured_images/
-├── train/
-│   ├── train_000.jpg
-│   └── ...
-└── val/
-    ├── val_000.jpg
-    └── ...
+├── img_000.jpg
+├── img_001.jpg
+└── ...
 ```
 
-Change the background, sign pose or lighting before collecting validation
-images. Consecutive frames from one burst should not be divided between train
-and validation.
+Vary the background, sign pose, lighting, distance and camera position during
+capture. The Colab notebook creates the train/validation split after the single
+CVAT annotation export has been converted to YOLO image/label pairs.
 
 Copy the images to the laptop:
 
@@ -86,4 +80,3 @@ scp best.onnx \
 ```
 
 Then follow `Car_lab/week4_object_detection/README.md`.
-

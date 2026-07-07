@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture labelled image sessions with the Raspberry Pi camera CLI."""
+"""Capture one image dataset with the Raspberry Pi camera CLI."""
 
 import argparse
 import shutil
@@ -20,9 +20,9 @@ def available_camera_command():
     return None
 
 
-def next_image_number(output_dir, session):
+def next_image_number(output_dir):
     numbers = []
-    for image_path in output_dir.glob(f"{session}_*.jpg"):
+    for image_path in output_dir.glob("img_*.jpg"):
         try:
             numbers.append(int(image_path.stem.rsplit("_", 1)[1]))
         except (IndexError, ValueError):
@@ -30,7 +30,7 @@ def next_image_number(output_dir, session):
     return max(numbers, default=-1) + 1
 
 
-def capture_images(session, num_images, delay, width, height):
+def capture_images(num_images, delay, width, height):
     camera_command = available_camera_command()
     if camera_command is None:
         raise RuntimeError(
@@ -38,12 +38,11 @@ def capture_images(session, num_images, delay, width, height):
             "Check the Raspberry Pi camera software."
         )
 
-    output_dir = OUTPUT_ROOT / session
+    output_dir = OUTPUT_ROOT
     output_dir.mkdir(parents=True, exist_ok=True)
-    start_number = next_image_number(output_dir, session)
+    start_number = next_image_number(output_dir)
 
     print(f"Camera command: {camera_command}")
-    print(f"Session: {session}")
     print(f"Saving to: {output_dir}")
     print(f"Capturing {num_images} images at {width}x{height}")
     print("Starting in 3 seconds...")
@@ -54,7 +53,7 @@ def capture_images(session, num_images, delay, width, height):
     successful = 0
     for offset in range(num_images):
         image_number = start_number + offset
-        output_path = output_dir / f"{session}_{image_number:03d}.jpg"
+        output_path = output_dir / f"img_{image_number:03d}.jpg"
         command = [
             camera_command,
             "--nopreview",
@@ -96,16 +95,10 @@ def capture_images(session, num_images, delay, width, height):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Capture a train or validation image session."
+        description="Capture one image dataset for CVAT annotation."
     )
     parser.add_argument(
-        "--session",
-        choices=("train", "val"),
-        required=True,
-        help="Dataset session. Train and validation are stored separately.",
-    )
-    parser.add_argument(
-        "-n", "--num-images", type=int, default=20, help="Number of images"
+        "-n", "--num-images", type=int, default=80, help="Number of images"
     )
     parser.add_argument(
         "-d", "--delay", type=float, default=0.5, help="Seconds between images"
@@ -126,7 +119,6 @@ def parse_args():
 def main():
     args = parse_args()
     complete = capture_images(
-        session=args.session,
         num_images=args.num_images,
         delay=args.delay,
         width=args.width,
@@ -137,4 +129,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

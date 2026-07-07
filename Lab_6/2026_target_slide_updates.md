@@ -9,7 +9,7 @@ Lab 6 remains a model-development lab:
 1. Use a PiCar-X camera to capture custom-sign images.
 2. Annotate the images in CVAT.
 3. Fine-tune YOLOv8n in Google Colab.
-4. Evaluate the model on a genuinely separate validation set.
+4. Use the supplied notebook to train and evaluate the model.
 5. Export `best.onnx`.
 
 Deployment is a separate, minimal car-lab week in:
@@ -35,32 +35,11 @@ AppCV_2026/Lab_6/
 
 ## CVAT format decision
 
-### Recommended 2026 flow
+### 2026 flow
 
-Use CVAT's **Ultralytics YOLO Detection 1.0** export rather than exporting CVAT XML and converting it with custom notebook code.
-
-The CVAT YOLO archive already uses the format needed by Ultralytics:
-
-```text
-cvat_yolo_export.zip
-├── data.yaml
-├── train.txt
-├── images/
-│   └── train/
-└── labels/
-    └── train/
-        ├── train_000.txt
-        ├── train_001.txt
-        └── ...
-```
-
-Each label line has this form:
-
-```text
-class_id center_x center_y width height
-```
-
-The four coordinates and dimensions are normalized to the range 0–1. CVAT documents this structure at <https://docs.cvat.ai/docs/dataset_management/formats/format-yolo-ultralytics/>.
+Use one image collection and one CVAT annotation task. Export the annotations as
+`annotations.xml`, matching the format expected by the supplied Colab notebook.
+Students do not create separate training and validation capture folders.
 
 ### How this changes the 2025 notebook
 
@@ -75,38 +54,28 @@ original JPG files + annotations.xml
     -> training
 ```
 
-The proposed 2026 flow is:
+The 2026 flow remains:
 
 ```text
-CVAT Ultralytics YOLO ZIP + original JPG ZIP if required
-    -> extract
-    -> verify image/label filename pairs and class IDs
-    -> create explicit train and validation directories
-    -> write final data.yaml
+captured_images/*.jpg + annotations.xml
+    -> notebook XML parser
+    -> YOLO TXT files
+    -> data.yaml
     -> training
 ```
 
-This removes a fragile conversion stage without removing the learning objective. Students still learn the YOLO coordinate representation on slide 16 and inspect actual `.txt` annotation files in Colab.
+The notebook converts each CVAT bounding box into the normalized YOLO format:
+
+```text
+class_id center_x center_y width height
+```
 
 ### Required Step 3 change
 
-Yes: notebook Step 3 must change.
-
-Replace **“Upload Your Data: images and `annotations.xml`”** with **“Upload the exported YOLO dataset.”** The notebook should accept:
-
-- `cvat_yolo_export.zip`; and
-- `captured_images.zip` only when the CVAT export does not contain the original images.
-
-The first Step 3 code cell should:
-
-1. extract the supplied archive or archives;
-2. find `data.yaml`, image files and label files;
-3. check that every label file has a matching image stem;
-4. check that class IDs are between 0 and 3;
-5. report empty/background images separately;
-6. fail with a clear message before training if the dataset is inconsistent.
-
-Do not preserve the 2025 configuration in which `train` and `val` point to the same image directory. Validation images must be captured separately or separated by capture-session prefix.
+Step 3 should retain **“Upload Your Data: images and `annotations.xml`”**.
+Students upload every `img_XXX.jpg` file from `captured_images/` into the
+notebook's images directory and upload the single CVAT `annotations.xml` file
+into its annotations directory.
 
 ---
 
@@ -405,11 +374,12 @@ Lab_6/
 
 **Title**
 
-> Capture the Training and Validation Images
+> Capture the Training Images
 
 **Body**
 
-> Capture the two sets separately. The validation set must represent images the model does not see during training.
+> Capture one varied image collection. Every image is saved directly in
+> `Lab_6/captured_images/` and will be uploaded to one CVAT annotation task.
 
 **Code block**
 
@@ -417,13 +387,8 @@ Lab_6/
 cd ~/AppCV_2026/Lab_6
 conda activate app_cv
 
-# Main training capture
 python scripts/capture_training_images.py \
-  --session train --num-images 60 --delay 0.4
-
-# Separate validation capture
-python scripts/capture_training_images.py \
-  --session val --num-images 20 --delay 0.6
+  --num-images 80 --delay 0.5
 ```
 
 **Capture checklist**
@@ -432,7 +397,10 @@ python scripts/capture_training_images.py \
 > - Use multiple backgrounds and lighting conditions.
 > - Include some frames with more than one sign.
 > - Include background images containing no target sign.
-> - Change the scene before collecting the validation images.
+> - Move the signs and change the scene throughout the capture.
+>
+> Running the command again continues the numbering in the same folder, so
+> existing images are not overwritten.
 
 **Transfer to the laptop**
 
@@ -499,25 +467,22 @@ scp -r cvpcar#@cvpcar#.local:~/AppCV_2026/Lab_6/captured_images .
 
 **Title**
 
-> Train and Validation Data Must Be Different
+> One Dataset, One Annotation Task
 
 **Body**
 
-> **Training set**
+> All captured images belong to one dataset:
 >
-> - Used to update the model weights.
-> - The model sees these images repeatedly.
+> ```text
+> Lab_6/captured_images/
+> ├── img_000.jpg
+> ├── img_001.jpg
+> └── ...
+> ```
 >
-> **Validation set**
->
-> - Used to measure generalization during training.
-> - Must contain images that are not in the training set.
->
-> **Important for burst captures:** neighbouring frames can be almost identical. Randomly placing one frame in training and the next frame in validation leaks scene information and produces over-optimistic metrics.
->
-> We therefore use separate `train` and `val` capture sessions with changed positions, backgrounds or lighting.
->
-> Never configure the same directory as both `train` and `val`.
+> Upload the complete folder to one CVAT task and export one
+> `annotations.xml` file. Do not manually create `train/` and `val/` capture
+> folders; the supplied Colab notebook controls the dataset used by YOLOv8.
 
 ---
 
@@ -561,8 +526,7 @@ scp -r cvpcar#@cvpcar#.local:~/AppCV_2026/Lab_6/captured_images .
 > ```
 >
 > 3. Create one image-annotation task inside the project.
-> 4. Upload all images from both capture sessions.
-> 5. Preserve the `train_...` and `val_...` filename prefixes.
+> 4. Upload every `img_XXX.jpg` file from `Lab_6/captured_images/`.
 >
 > Exact spelling and class order matter because the exported numeric class IDs follow the project label mapping.
 
@@ -586,7 +550,7 @@ scp -r cvpcar#@cvpcar#.local:~/AppCV_2026/Lab_6/captured_images .
 >
 > Use the shortcuts displayed by the current CVAT interface; shortcuts can change between CVAT versions.
 >
-> Before export, review examples from every class and both capture sessions.
+> Before export, review examples from every class and across the complete dataset.
 
 ---
 
@@ -611,7 +575,7 @@ scp -r cvpcar#@cvpcar#.local:~/AppCV_2026/Lab_6/captured_images .
 > - missing signs;
 > - inconsistent class names;
 > - duplicated near-identical views;
-> - validation images copied from the training capture.
+> - inconsistent policies for partially visible signs.
 >
 > Inspect the exported labels visually in Colab before training.
 
@@ -621,7 +585,7 @@ scp -r cvpcar#@cvpcar#.local:~/AppCV_2026/Lab_6/captured_images .
 
 **Title**
 
-> Export from CVAT and Upload to Colab
+> Export the CVAT Annotations and Upload to Colab
 
 **Body**
 
@@ -629,23 +593,20 @@ scp -r cvpcar#@cvpcar#.local:~/AppCV_2026/Lab_6/captured_images .
 >
 > 1. Open the task’s **Actions** menu.
 > 2. Choose **Export task dataset**.
-> 3. Select **Ultralytics YOLO Detection 1.0**.
-> 4. Download the ZIP archive as `cvat_yolo_export.zip`.
+> 3. Select **CVAT for images 1.1**.
+> 4. Export and locate the generated `annotations.xml` file.
 >
 > **Upload to the supplied Colab notebook**
 >
-> - Upload `cvat_yolo_export.zip`.
-> - If the export does not contain the JPG files, also upload `captured_images.zip`.
+> - Upload all `img_XXX.jpg` files to `/content/stop_sign_dataset/images`.
+> - Upload `annotations.xml` to `/content/stop_sign_dataset/annotations`.
 >
 > **The notebook will**
 >
-> - extract the archive;
-> - verify image/label filename pairs;
-> - verify class IDs and normalized coordinates;
-> - build separate train and validation directories from the filename prefixes;
-> - create the final `data.yaml`.
->
-> There is no `annotations.xml` upload and no XML-to-YOLO conversion step in the 2026 flow.
+> - read the CVAT XML annotations;
+> - convert each bounding box to YOLO format;
+> - create one `.txt` label file for each image;
+> - create the final `data.yaml` used for training.
 
 ---
 
@@ -882,12 +843,12 @@ python -c "import cv2, numpy, onnxruntime; print('app_cv ready')"
 
 > By the end of this lab, your group should have:
 >
-> - separate training and validation captures;
+> - one varied image collection in `captured_images/`;
 > - consistent CVAT bounding-box annotations;
-> - an Ultralytics YOLO dataset export;
+> - one CVAT `annotations.xml` export;
 > - visual verification of several exported labels;
 > - a fine-tuned YOLOv8n model;
-> - metrics from an independent validation set;
+> - training and evaluation results from the supplied notebook;
 > - ONNX predictions checked in Colab;
 > - a downloaded and backed-up `best.onnx` file.
 >
@@ -899,7 +860,7 @@ python -c "import cv2, numpy, onnxruntime; print('app_cv ready')"
 
 Completed in the repository:
 
-1. `AppCV_2026/Lab_6/scripts/capture_training_images.py` supports `--session`, `--num-images` and `--delay`.
+1. `AppCV_2026/Lab_6/scripts/capture_training_images.py` supports `--num-images` and `--delay`, and saves every image directly in `captured_images/`.
 2. The capture code checks for the current `rpicam-still` command and the older `libcamera-still` fallback.
 3. The Week 4 handout, model path and detection-dictionary contract now exist.
 4. Week 4 contains separate student and instructor detector implementations.
@@ -908,11 +869,8 @@ Completed in the repository:
 
 Still required:
 
-1. Reconstruct or recover the executable Colab notebook; only its 2025 text extraction is currently available.
-2. Make the notebook accept the CVAT Ultralytics YOLO ZIP directly.
-3. Make the notebook merge original JPG files with an annotations-only export when necessary.
-4. Create distinct train and validation directories in the notebook.
-5. Pin and test the chosen Ultralytics version and fixed ONNX input size.
-6. Run the capture, environment and ONNX smoke tests on a physical Pi 5.
+1. Add the supplied executable Colab notebook to the repository.
+2. Pin and test the chosen Ultralytics version and fixed ONNX input size.
+3. Run the capture, environment and ONNX smoke tests on a physical Pi 5.
 
 Until those checks pass, the command blocks in this document are target text rather than released student instructions.

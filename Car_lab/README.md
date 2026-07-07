@@ -42,8 +42,11 @@ curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Min
 bash Miniforge3-Linux-aarch64.sh -b -p "$HOME/miniforge3"
 
 source "$HOME/miniforge3/etc/profile.d/conda.sh"
+conda init bash
 conda config --set auto_activate_base false
 ```
+
+`conda init bash` keeps the `conda` command available in future SSH sessions.
 
 Create and activate the course environment from the file in this directory:
 
@@ -66,6 +69,7 @@ python -m pip install -e ~/picar-x
 
 The `chown` command makes sure the current user owns the local SunFounder
 package folders, so `pip` can generate its package metadata during installation.
+Run `conda activate app_cv` after each new SSH login.
 
 ## Run Week 1
 
